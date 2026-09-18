@@ -19,6 +19,7 @@ Panel {
   readonly property bool showStopped: setting("showStopped", true) === true
   readonly property string containerManager: String(setting("containerManager", "podman"))
   readonly property bool hideWhenEmpty: setting("hideWhenEmpty", false) === true
+  readonly property string templatesFile: String(setting("templatesFile", "~/.config/distrobox/boxes.ini"))
 
   readonly property color foreground: bar ? bar.foreground : Color.foreground
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
@@ -27,13 +28,15 @@ Panel {
     DistroboxState.settings = {
       refreshIntervalSec: root.refreshIntervalSec,
       showStopped: root.showStopped,
-      containerManager: root.containerManager
+      containerManager: root.containerManager,
+      templatesFile: root.templatesFile
     }
   }
 
   onRefreshIntervalSecChanged: pushSettings()
   onShowStoppedChanged: pushSettings()
   onContainerManagerChanged: pushSettings()
+  onTemplatesFileChanged: pushSettings()
 
   Component.onCompleted: {
     pushSettings()

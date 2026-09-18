@@ -345,6 +345,7 @@ FocusScope {
           width: parent.width
           height: visible ? implicitHeight : 0
           boxes: DistroboxState.boxes
+          fileTemplates: DistroboxState.userTemplates
           foreground: root.foreground
           fontFamily: root.fontFamily
           onSubmitted: function(form) { root.submitForm(form) }

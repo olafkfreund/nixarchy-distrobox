@@ -144,6 +144,7 @@ Set these in the bar widget's settings (Super+Alt+B), or inline on its entry in
 | `showStopped` | `true` | Off lists only running boxes. |
 | `containerManager` | `podman` | `podman` or `docker`. The list is read from this engine, and every distrobox command runs with `DBX_CONTAINER_MANAGER` set to it. |
 | `hideWhenEmpty` | `false` | Hide the bar glyph while there are no boxes. |
+| `templatesFile` | `~/.config/distrobox/boxes.ini` | A `distrobox assemble` file whose sections appear under **Start from** as your own templates. Read, never run. |
 
 ## IPC
 
