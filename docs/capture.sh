@@ -28,6 +28,9 @@ fedora=registry.fedoraproject.org/fedora-toolbox:latest
 ubuntu=quay.io/toolbx/ubuntu-toolbox:24.04
 homes="$HOME/.local/share/distrobox"
 boxes=(demo-fedora demo-ubuntu demo-broken)
+# Made through the plugin itself during the create recording, not by --setup.
+# --setup refuses if it already exists, so at teardown it can only be ours.
+panel_boxes=(demo-new)
 saved=("$HOME/.config/omarchy/shell.json" "$HOME/.config/omarchy/extensions/omarchy-menu.jsonc")
 run_dir="${XDG_RUNTIME_DIR:-/tmp}/nixarchy-distrobox-capture"
 # One line per created thing, "kind name", read back by --teardown.
@@ -39,7 +42,7 @@ dbx() { env DBX_CONTAINER_MANAGER=podman distrobox "$@"; }
 
 refuse_collisions() {
   local b clash=0
-  for b in "${boxes[@]}"; do
+  for b in "${boxes[@]}" "${panel_boxes[@]}"; do
     if podman container exists "$b"; then echo "exists: box $b" >&2; clash=1; fi
     if [ -e "$homes/$b" ]; then echo "exists: $homes/$b" >&2; clash=1; fi
   done
@@ -62,7 +65,11 @@ setup() {
   mkdir -p "$run_dir"
   refuse_collisions
   : >"$state"
-  local f i=0
+  local b f i=0
+  for b in "${panel_boxes[@]}"; do
+    made box "$b"
+    made home "$homes/$b"
+  done
   for f in "${saved[@]}"; do
     if [ -e "$f" ] || [ -L "$f" ]; then
       cp -a "$f" "$run_dir/saved.$i"
@@ -87,7 +94,7 @@ teardown() {
   local kind rest
   while read -r kind rest; do
     [ "$kind" = box ] || continue
-    dbx rm --force "$rest" >/dev/null 2>&1 || true
+    if podman container exists "$rest"; then dbx rm --force "$rest" >/dev/null 2>&1 || true; fi
   done <"$state"
   while read -r kind rest; do
     [ "$kind" = home ] || continue

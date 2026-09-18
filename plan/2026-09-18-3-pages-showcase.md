@@ -153,6 +153,43 @@ deviation updates this file in the same commit.
    writes into the owner's home. Teardown removes only recorded paths that
    match that prefix. Restores use `cp -a`, so a symlinked config file would
    come back as a symlink.
+3. **Steps 3–4: what was captured instead of the planned list.**
+   - **`settings.png` dropped.** The widget's settings sit inside another
+     plugin (`skal.bar`), whose panel changes live bar values with the arrow
+     keys, and the key guard does not cover it. The settings are a table in
+     the README and the manual.
+   - **`glyph.png` → `glyph-failing.png`:** the real state with a failed demo
+     box (red), not a staged "idle".
+   - **`omarchy-menu-row.png`** is cropped to the search field and our row.
+     Unfiltered, the Apps menu lists the owner's installed applications.
+   - **`rec-start-enter` → `rec-start`:** a first start (Created →
+     "starting…" → running, 18 s). The Enter half opens a terminal that tiles
+     across the whole monitor, outside the recorded region, and shows only a
+     blank rectangle.
+   - **Two plugin bugs found while recording, filed rather than fixed here**
+     (this is a docs task):
+     - #4: the create form shows the previous text after reopening, while its
+       data is reset;
+     - #5: the cursor keeps its row index when the list re-sorts, so the next
+       key acts on a different box.
+
+     The recordings show first-open and fresh-start behaviour, which is
+     genuine.
+   - **`demo-new`**, made through the plugin during `rec-create`, is known to
+     `capture.sh` (`panel_boxes`): `--setup` refuses it and `--teardown`
+     removes it.
+4. **Step 7 ran before steps 5–6.** Teardown ran as soon as capture ended, to
+   give the owner the desktop back. Everything after it is text.
+5. **Capture safety, added during step 3.** Twice the session touched the
+   owner's desktop:
+   - a still caught one of the owner's windows after the owner switched
+     workspaces back;
+   - a keystroke may have reached the focused terminal.
+
+   Both happened while the owner was using the machine. The leaked still was
+   deleted before any commit. After that, every keystroke went through a
+   guard that types only while a plugin surface (popup or menu layer) is
+   on screen, and capture resumed only once the owner stepped away.
 
 ### Test results
 
@@ -167,3 +204,14 @@ deviation updates this file in the same commit.
     config files (sha256, file type, mode) are identical to the pre-setup
     snapshot, and the run directory is gone. A second `--teardown` is a
     no-op.
+- **Steps 3–4:**
+  - 12 stills and 3 recordings, each still and a frame sheet of each recording
+    looked at, none showing anything but the plugin, `demo-*` boxes and
+    wallpaper.
+  - Encoded: `rec-create` 168/192 KB, `rec-start` 76/60 KB, `rec-menu`
+    488/556 KB (WebM/MP4), all decoding without errors. `docs/img` is 2.50 MB
+    of 8 MB.
+- **Step 7 (run early):** after `--teardown`, the container list, the
+  distrobox homes, `shell.json` and `omarchy-menu.jsonc` are identical to the
+  pre-capture snapshot. DND is back to off, and the workspaces are back to 11
+  (DP-2) and 21 (HDMI).
