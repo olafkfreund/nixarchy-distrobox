@@ -38,6 +38,11 @@ FocusScope {
   property bool helpOpen: false
 
   property int cursorIndex: 0
+  // The box the cursor is on, remembered separately from the row number: the
+  // list re-sorts on every refresh (running boxes first), so the row a box sits
+  // in changes under the cursor. Not a binding: a binding would re-read the
+  // re-sorted list and follow the wrong box.
+  property string cursorKey: ""
   property bool cursorActive: false
   property bool cursorFromKeyboard: false
 
@@ -49,7 +54,14 @@ FocusScope {
   readonly property var cursorBox: cursorRow ? Model.boxByName(DistroboxState.boxes, cursorRow.name) : null
   readonly property var lock: ({ mutating: DistroboxState.mutating })
 
-  onRowsChanged: root.cursorIndex = Model.clampCursor(root.cursorIndex, rows.length)
+  onRowsChanged: root.rememberCursor(Model.cursorAfter(root.cursorActive ? root.cursorKey : "", root.rows, root.cursorIndex))
+
+  // Every change of the cursor comes through here, so the row number and the
+  // remembered box never disagree.
+  function rememberCursor(index) {
+    root.cursorIndex = Model.clampCursor(index, root.rows.length)
+    root.cursorKey = root.cursorActive && root.rows.length > 0 ? root.rows[root.cursorIndex].key : ""
+  }
 
   // ------------------------------------------------------------ lifecycle
 
@@ -59,9 +71,10 @@ FocusScope {
   function reset() {
     mode = "list"
     cursorActive = false
-    cursorIndex = 0
+    cursorKey = ""
     filterText = ""
     filterField.text = ""
+    rememberCursor(0)
     filterField.focus = false
     DistroboxState.lastError = ""
     helpOpen = false
@@ -185,6 +198,7 @@ FocusScope {
     if (delta < 0 && cursorActive && cursorIndex === 0) {
       filterField.forceActiveFocus()
       cursorActive = false
+      cursorKey = ""
       return
     }
     if (rows.length === 0) {
@@ -193,13 +207,18 @@ FocusScope {
     }
     cursorActive = true
     cursorFromKeyboard = true
-    cursorIndex = Model.clampCursor(cursorIndex + delta, rows.length)
+    rememberCursor(cursorIndex + delta)
   }
 
-  function setCursor(index) {
+  // Hover names the box, not a row: while the list reconciles, a row number can
+  // briefly point at a different box. A box no longer listed is ignored.
+  function setCursorKey(key) {
+    var index = -1
+    for (var i = 0; i < rows.length; i++) if (rows[i].key === key) { index = i; break }
+    if (index === -1) return
     cursorActive = true
     cursorFromKeyboard = false
-    cursorIndex = Model.clampCursor(index, rows.length)
+    rememberCursor(index)
   }
 
   function handleTextKey(key) {
@@ -357,8 +376,10 @@ FocusScope {
           placeholderText: Model.Glyph.search + "  Filter boxes" +
             (activeFocus ? "" : "   /")
           onTextChanged: {
+            // A new filter starts from the top, not from a remembered box.
+            root.cursorKey = ""
             root.filterText = text
-            root.cursorIndex = 0
+            root.rememberCursor(0)
           }
           Keys.onEscapePressed: {
             if (text.length > 0) text = ""
@@ -385,7 +406,7 @@ FocusScope {
           fontFamily: root.fontFamily
 
           onActionRequested: function(name, verb) { root.dispatch(name, verb) }
-          onCursorRequested: function(index) { root.setCursor(index) }
+          onCursorRequested: function(key) { root.setCursorKey(key) }
         }
 
         Column {
