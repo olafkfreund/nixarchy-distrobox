@@ -976,9 +976,11 @@ function templateById(id) {
   return null
 }
 
-function templateChoices(query) {
+// Blank, the built-ins, then the user's own (fileEntries, from fileTemplates),
+// filtered by what has been typed.
+function templateChoices(query, fileEntries) {
   var q = trim(query).toLowerCase()
-  var all = [BLANK_TEMPLATE].concat(TEMPLATES)
+  var all = [BLANK_TEMPLATE].concat(TEMPLATES, fileEntries || [])
   if (!q) return all
   var out = []
   for (var i = 0; i < all.length; i++) {
@@ -1038,5 +1040,214 @@ function setInit(form, on) {
     }
     next.additionalPackages = keep.join(" ")
   }
+  return next
+}
+
+// ---------------------------------------------------------------- assemble files
+//
+// The user's own templates, from a `distrobox assemble` .ini file. Read here,
+// in JavaScript, and never handed to distrobox: distrobox-assemble (1.8.2.5)
+// writes each key=value into a file it then sources as shell, so an unquoted
+// `$(...)` value runs on the host just from being read. The line rules below
+// mirror its parse_file and resolve_includes; where those would produce
+// something broken or ambiguous, this refuses with a reason instead of
+// guessing. Every value then goes through validateForm like typed input.
+
+var ASSEMBLE_MAX_BYTES = 65536
+var ASSEMBLE_MAX_LINES = 256
+var ASSEMBLE_MAX_DEPTH = 8
+
+var ASSEMBLE_BOOLS = ["init", "pull", "nvidia", "entry", "root", "start_now", "replace",
+  "unshare_all", "unshare_devsys", "unshare_groups", "unshare_ipc", "unshare_netns", "unshare_process"]
+var ASSEMBLE_SINGLE = ["image", "clone", "home", "hostname"]
+var ASSEMBLE_CUMULATIVE = ["volume", "additional_packages", "additional_flags", "init_hooks", "pre_init_hooks"]
+var ASSEMBLE_REFUSED = {
+  exported_apps: "exported_apps runs commands inside the box; not supported yet",
+  exported_bins: "exported_bins runs commands inside the box; not supported yet",
+  exported_bins_path: "exported_bins_path belongs to exported_bins; not supported yet"
+}
+
+function stripOneQuotePair(value) {
+  var v = String(value)
+  if (v.length >= 2 && ((v[0] === '"' && v[v.length - 1] === '"') || (v[0] === "'" && v[v.length - 1] === "'"))) {
+    return v.substring(1, v.length - 1)
+  }
+  return v
+}
+
+// {sections: [{name, lines: [{key, value}], errors: []}], errors: []}
+function parseAssemble(text) {
+  var raw = String(text === undefined || text === null ? "" : text)
+  var out = { sections: [], errors: [] }
+  if (raw.length > ASSEMBLE_MAX_BYTES) {
+    out.errors.push("the file is larger than 64 KB")
+    return out
+  }
+  var current = null
+  var lines = raw.split("\n")
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].replace(/\t/g, " ")
+    if (line.charAt(0) === "#") line = ""
+    line = line.replace(/\].*#.*/, "")
+    line = line.replace(/ #.*/, "")
+    line = line.replace(/\s*$/, "")
+    if (!line) continue
+    if (line.charAt(0) === "[") {
+      current = { name: line.replace(/[\][ ]/g, ""), lines: [], errors: [] }
+      out.sections.push(current)
+      continue
+    }
+    if (!current) {
+      out.errors.push("line " + (i + 1) + " is outside any [section] and is ignored")
+      continue
+    }
+    var eq = line.indexOf("=")
+    if (eq === -1) {
+      current.errors.push("line " + (i + 1) + " has no key=value")
+      continue
+    }
+    var key = line.substring(0, eq).replace(/ /g, "")
+    var value = line.substring(eq + 1)
+    if (value === "true") value = "1"
+    else if (value === "false") value = "0"
+    if (!key || value === "") continue
+    current.lines.push({ key: key, value: stripOneQuotePair(value) })
+  }
+  return out
+}
+
+function assembleSection(parsed, name) {
+  for (var i = 0; i < parsed.sections.length; i++) {
+    if (parsed.sections[i].name === name) return parsed.sections[i]
+  }
+  return null
+}
+
+// A section's lines with every include=X inlined in place. A section already
+// on the include chain is a circular reference, as in resolve_includes.
+// {lines, error}
+function resolveSection(parsed, name) {
+  var count = 0
+  function expand(section, chain, depth) {
+    if (depth > ASSEMBLE_MAX_DEPTH) return { error: "includes nested deeper than " + ASSEMBLE_MAX_DEPTH }
+    var result = []
+    for (var i = 0; i < section.lines.length; i++) {
+      var l = section.lines[i]
+      if (l.key !== "include") {
+        count += 1
+        if (count > ASSEMBLE_MAX_LINES) return { error: "more than " + ASSEMBLE_MAX_LINES + " lines" }
+        result.push(l)
+        continue
+      }
+      var target = String(l.value).replace(/"/g, "")
+      if (chain.indexOf(target) !== -1) return { error: "circular include of [" + target + "]" }
+      var inc = assembleSection(parsed, target)
+      if (!inc) return { error: "include [" + target + "] not found" }
+      var sub = expand(inc, chain.concat([target]), depth + 1)
+      if (sub.error) return sub
+      result = result.concat(sub.lines)
+    }
+    return { lines: result }
+  }
+  var start = assembleSection(parsed, name)
+  if (!start) return { error: "no section [" + name + "]" }
+  return expand(start, [name], 0)
+}
+
+function joinHooks(parts) {
+  var out = ""
+  for (var i = 0; i < parts.length; i++) {
+    var p = String(parts[i])
+    if (!out) { out = p; continue }
+    out += /(;|&&)\s?$/.test(out) ? " " + p : "; " + p
+  }
+  return out
+}
+
+// A section's resolved lines as a form, with what could not be taken over.
+// {form, refused: [reason], notes: [text]}
+function sectionToForm(name, lines) {
+  var form = emptyForm()
+  form.name = name
+  form.template = "file:" + name
+  var refused = []
+  var notes = []
+  var seen = {}
+  var cumulative = {}
+  for (var i = 0; i < lines.length; i++) {
+    var key = lines[i].key
+    var value = lines[i].value
+    if (ASSEMBLE_REFUSED[key]) { refused.push(ASSEMBLE_REFUSED[key]); continue }
+    if (key === "name") { notes.push("name= is ignored; the section name is the box name"); continue }
+    if (ASSEMBLE_CUMULATIVE.indexOf(key) !== -1) {
+      if (!cumulative[key]) cumulative[key] = []
+      cumulative[key].push(value)
+      continue
+    }
+    if (ASSEMBLE_BOOLS.indexOf(key) !== -1) {
+      if (value !== "1" && value !== "0") { refused.push(key + " must be true or false, not \"" + value + "\""); continue }
+      var on = value === "1"
+      if (key === "root" && on) { refused.push("root=true boxes are not supported by the plugin"); continue }
+      if (key === "replace" && on) { refused.push("replace=true deletes an existing box; not supported"); continue }
+      if (key === "start_now") { if (on) notes.push("start_now is ignored; start the box with s"); continue }
+      if (key === "root" || key === "replace") continue
+      if (key === "entry") form.noEntry = !on
+      else if (key === "unshare_all") form.unshareAll = on
+      else if (key.indexOf("unshare_") === 0) form["unshare" + key.charAt(8).toUpperCase() + key.substring(9)] = on
+      else form[key] = on
+      continue
+    }
+    if (ASSEMBLE_SINGLE.indexOf(key) !== -1) {
+      if (seen[key]) { refused.push(key + " is set more than once"); continue }
+      seen[key] = true
+      form[key] = value
+      continue
+    }
+    refused.push("unknown key \"" + key + "\"")
+  }
+  if (cumulative.volume) form.volumes = cumulative.volume.join(" ")
+  if (cumulative.additional_packages) form.additionalPackages = cumulative.additional_packages.join(" ")
+  if (cumulative.additional_flags) form.additionalFlags = cumulative.additional_flags.join(" ")
+  if (cumulative.init_hooks) form.initHooks = joinHooks(cumulative.init_hooks)
+  if (cumulative.pre_init_hooks) form.preInitHooks = joinHooks(cumulative.pre_init_hooks)
+  if (seen.clone) form.image = ""
+  return { form: form, refused: refused, notes: notes }
+}
+
+// The "Yours" entries: one per section, usable only if it resolves, nothing
+// is refused, and validateForm accepts it (a taken name is judged at create
+// time, against the real list of boxes).
+function fileTemplates(text) {
+  var parsed = parseAssemble(text)
+  var out = []
+  for (var i = 0; i < parsed.sections.length; i++) {
+    var s = parsed.sections[i]
+    var reasons = s.errors.slice()
+    var mapped = { form: emptyForm(), refused: [], notes: [] }
+    if (!isBoxName(s.name)) reasons.push("[" + s.name + "] is not a valid box name")
+    var resolved = resolveSection(parsed, s.name)
+    if (resolved.error) reasons.push(resolved.error)
+    else {
+      mapped = sectionToForm(s.name, resolved.lines)
+      reasons = reasons.concat(mapped.refused)
+      var check = validateForm(mapped.form, [])
+      for (var k in check.errors) reasons.push(k + ": " + check.errors[k])
+    }
+    out.push({
+      id: "file:" + s.name, label: s.name, image: mapped.form.image || (mapped.form.clone ? "clone of " + mapped.form.clone : ""),
+      tested: false, source: "file", form: mapped.form, usable: reasons.length === 0,
+      reasons: reasons, notes: mapped.notes
+    })
+  }
+  return { templates: out, errors: parsed.errors }
+}
+
+// A usable file template applied to the form: its values, with a name the user
+// already typed kept.
+function applyFileTemplate(form, entry) {
+  if (!entry || !entry.usable) return form
+  var next = Object.assign({}, entry.form)
+  var typed = trim(form && form.name)
+  if (typed) next.name = typed
   return next
 }

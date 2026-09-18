@@ -126,7 +126,29 @@ not in this plan.
 
 ### Deviations
 
-_None yet._
+1. **Step 1: built on the #7 branch, not on `main`,** for the same reason as #7's
+   deviation 1 (the #4 and #5 merges wait on live checks). It rebases onto
+   `main` after #7 merges.
+2. **Step 2: where the parser refuses instead of mirroring.** Mirroring
+   distrobox-assemble exactly would produce something broken or guessed here,
+   so these are refused with a reason:
+   - a line without `=` (upstream would use the whole line as both key and
+     value);
+   - lines before the first `[section]` (upstream lets them bleed into the
+     first box);
+   - a single-value key set twice (upstream joins the values into a broken
+     `image` and so on);
+   - a boolean written with spaces, like `init = true` (upstream's value is
+     `" true"`, which is not a boolean);
+   - `platform`, which the create form has but assemble does not read (refused
+     as an unknown key).
+
+   **Mirrored as-is, and pinned by a test:** `true`/`false` become `1`/`0` for
+   every key, hooks included.
+
+   **Hooks** are joined with `; ` between parts that do not already end in `;`
+   or `&&`. That is shell-equivalent to upstream's append-`;`-and-space, but
+   not byte-identical.
 
 ### Test results
 
