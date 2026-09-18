@@ -167,3 +167,15 @@ test("clone cycles through stopped boxes and back to none", () => {
   eq(Model.nextClone("gone", names), "")
   eq(Model.nextClone("", []), "")
 })
+
+test("emptyForm returns a fresh object each time (reopening starts from defaults)", () => {
+  const first = Model.emptyForm()
+  first.name = "typed"
+  first.image = "quay.io/x/y:1"
+  first.init = true
+  const second = Model.emptyForm()
+  eq(second.name, "")
+  eq(second.image, Model.DEFAULT_IMAGE)
+  eq(second.init, false)
+  ok(first !== second)
+})
