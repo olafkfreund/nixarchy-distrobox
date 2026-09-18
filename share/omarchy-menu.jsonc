@@ -1,0 +1,15 @@
+// Paste these rows into ~/.config/omarchy/extensions/omarchy-menu.jsonc,
+// inside its top-level { }. Omarchy reloads the file on save.
+//
+// "apps.distrobox" puts Distrobox under Apps in the Omarchy menu
+// (Super+Alt+Space); search for distrobox, boxes or toolbox from anywhere in
+// the menu. The menu searches `label` and `aliases` only.
+{
+  "apps.distrobox": {
+    "icon": "󰆧",
+    "label": "Distrobox",
+    "description": "Create, enter, start, stop, upgrade and delete boxes · Super+Alt+D",
+    "aliases": ["distrobox", "boxes", "toolbox", "containers", "create box", "enter box"],
+    "action": "omarchy-shell shell toggle nixarchy.distrobox '{}'"
+  }
+}
