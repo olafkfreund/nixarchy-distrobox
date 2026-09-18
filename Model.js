@@ -50,7 +50,7 @@ var SHORTCUTS = [
   { group: "Panel", keys: "?", text: "Show this list" },
 
   { group: "Create form", keys: "tab  ↓ / shift+tab  ↑", text: "Next / previous field" },
-  { group: "Create form", keys: "space", text: "Flip a switch, open Advanced" },
+  { group: "Create form", keys: "space", text: "Flip a switch, open Advanced, cycle the clone source" },
   { group: "Create form", keys: "enter", text: "Create the box" },
   { group: "Create form", keys: "esc", text: "Cancel" },
 

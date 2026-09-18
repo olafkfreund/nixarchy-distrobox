@@ -437,6 +437,9 @@ the same commit.
   - Planted faults, each in a scratch clone: `"#ff0000"` in QML → caught;
     `// pacman` → caught; a repo symlink → **not caught** until check (a)
     above was added, then caught.
+- **Step 10:** every `Model.SHORTCUTS` text appears verbatim in the README
+  (checked by script, 23 of 23). The IPC verbs documented in the README match
+  `Panel.qml`'s `IpcHandler` exactly (10 of 10).
 
 ### Review fixes
 
