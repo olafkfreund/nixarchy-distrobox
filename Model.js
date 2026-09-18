@@ -420,14 +420,28 @@ function emptyText(state) {
 }
 
 // The engine's or distrobox's own error text, cut to the one line that says
-// something.
+// something. distrobox prints its progress ("Starting container... [ OK ]")
+// on stderr before the failure, so the last "Error" line wins; the first
+// meaningful line is only the fallback.
 function errorText(raw) {
   var lines = String(raw || "").split("\n")
+  var first = ""
+  var lastError = ""
   for (var i = 0; i < lines.length; i++) {
-    var line = trim(stripAnsi(lines[i])).replace(/^Error(?: response from daemon)?:\s*/i, "")
-    if (line) return sanitize(line, 160)
+    var line = trim(stripAnsi(lines[i]))
+    if (!line || /^\+ /.test(line)) continue
+    if (!first) first = line
+    // distrobox puts it at the end of a progress line
+    // ("Firing up init system...  Error: could not …"), so look anywhere in
+    // the line. "An error occurred" is its generic sign-off, not the reason.
+    var at = line.search(/(^|\s)Error\b/)
+    if (at !== -1) {
+      var message = trim(line.substring(at))
+      if (!/^Error: An error occurred$/i.test(message)) lastError = message
+    }
   }
-  return ""
+  var chosen = lastError || first
+  return chosen ? sanitize(chosen.replace(/^Error(?: response from daemon)?:\s*/i, ""), 160) : ""
 }
 
 // ---------------------------------------------------------------- settings
@@ -535,10 +549,13 @@ function removeArgv(engine, name) {
   return dbx(engine).concat(["distrobox", "rm", "--force", name])
 }
 
+// No DBX_NON_INTERACTIVE: an upgrade of a box that exists asks nothing, and
+// for one that vanished, "non-interactive" means answering yes to "create
+// it now?". State answers every prompt with "n" instead.
 function upgradeArgv(engine, name) {
   var target = name === null || name === undefined || name === "" ? "--all" : name
   if (target !== "--all" && !isBoxName(target)) return null
-  return dbx(engine).concat(["DBX_NON_INTERACTIVE=1", "distrobox", "upgrade", target])
+  return dbx(engine).concat(["distrobox", "upgrade", target])
 }
 
 function copyArgv(name) {
@@ -862,7 +879,7 @@ var FORM_FIELDS = [
   { key: "pull", kind: "bool", label: "Pull the image even if it is already here" },
   { key: "home", kind: "text", label: "Home directory", hint: "Empty shares your home. e.g. ~/.local/share/distrobox/NAME" },
   { key: "additionalPackages", kind: "text", label: "Extra packages", hint: "Installed on first start, space-separated" },
-  { key: "init", kind: "bool", label: "Run an init system (systemd) inside" },
+  { key: "init", kind: "bool", label: "Run an init system (systemd) inside", hint: "The image must ship systemd (toolbox images do not): add systemd to Extra packages" },
   { key: "nvidia", kind: "bool", label: "Share the NVIDIA driver" },
   { key: "advanced", kind: "section", label: "Advanced" },
   { key: "hostname", kind: "text", label: "Hostname", advanced: true },

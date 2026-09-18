@@ -58,6 +58,9 @@ Singleton {
   property bool loading: false
   property bool everLoaded: false
   property string lastError: ""
+  // How many list queries have run: the `status` hook reports it, so "does it
+  // poll while closed" can be measured from outside rather than assumed.
+  property int polls: 0
 
   // ------------------------------------------------------------ the lock
 
@@ -80,6 +83,7 @@ Singleton {
   function refresh() {
     if (listProcess.running) return
     root.loading = true
+    root.polls += 1
     listProcess.command = Model.listArgv(root.engine, root.showStopped)
     listProcess.running = true
   }
@@ -135,6 +139,29 @@ Singleton {
     return "Busy: " + root.pendingVerb + (root.pendingName ? " " + root.pendingName : "") + " — wait for it to finish"
   }
 
+  // Only boxes the selected engine listed. `distrobox enter` on a name it
+  // cannot find asks "Create it now? [Y/n]", and every non-answer (EOF,
+  // DBX_NON_INTERACTIVE) means yes: a start would create a box. So a name
+  // that is not in the list never reaches a command, whoever asked for it
+  // (a key, a row button, or IPC).
+  function known(name) {
+    if (Model.boxByName(root.boxes, name)) return true
+    root.lastError = "No box called " + name + " in " + root.engine
+    return false
+  }
+
+  // Starts a command and answers any question it asks with "n", then closes
+  // stdin. A command that asks nothing ignores it; the one question distrobox
+  // can still ask here (a box deleted between the list and the command) gets
+  // a no, instead of a hang with the lock held.
+  function launch(proc, argv) {
+    proc.stdinEnabled = true
+    proc.command = argv
+    proc.running = true
+    proc.write("n\n")
+    proc.stdinEnabled = false
+  }
+
   // Every mutation comes through here. Refuses, with a reason, while anything
   // else mutates; the argv is null when a name failed validation.
   function run(argvs, verb, name) {
@@ -145,16 +172,16 @@ Singleton {
     root.pendingVerb = verb
     root.pendingName = name || ""
     root.queue = argvs.slice(1)
-    actionProcess.command = argvs[0]
-    actionProcess.running = true
+    root.launch(actionProcess, argvs[0])
     return true
   }
 
-  function start(name) { return run([Model.startArgv(root.engine, name)], "starting", name) }
-  function stop(name) { return run([Model.stopArgv(root.engine, [name])], "stopping", name) }
-  function remove(name) { return run([Model.removeArgv(root.engine, name)], "deleting", name) }
+  function start(name) { return known(name) && run([Model.startArgv(root.engine, name)], "starting", name) }
+  function stop(name) { return known(name) && run([Model.stopArgv(root.engine, [name])], "stopping", name) }
+  function remove(name) { return known(name) && run([Model.removeArgv(root.engine, name)], "deleting", name) }
 
   function restart(name) {
+    if (!known(name)) return false
     var argvs = Model.restartArgvs(root.engine, name)
     return argvs ? run(argvs, "restarting", name) : false
   }
@@ -175,12 +202,12 @@ Singleton {
     root.streamName = name || ""
     root.streamExit = -1
     root.log = ["$ " + title]
-    streamProcess.command = argv
-    streamProcess.running = true
+    root.launch(streamProcess, argv)
     return true
   }
 
   function upgrade(name) {
+    if (name && !known(name)) return false
     return startStream(Model.upgradeArgv(root.engine, name), name ? "upgrade " + name : "upgrade all boxes", name)
   }
 
@@ -201,6 +228,7 @@ Singleton {
   // Not a mutation: entering never changes the box, and distrobox enter waits
   // for any first-run setup by itself.
   function enter(name) {
+    if (!known(name)) return false
     var argv = Model.enterArgv(root.engine, name)
     if (!argv) return false
     Quickshell.execDetached(argv)
@@ -220,6 +248,7 @@ Singleton {
       engine: root.engine,
       bars: root.bars,
       views: root.views,
+      polls: root.polls,
       mutating: root.mutating,
       pending: root.pendingVerb + (root.pendingName ? " " + root.pendingName : ""),
       streaming: root.streaming,
@@ -282,8 +311,7 @@ Singleton {
         Qt.callLater(function() {
           var next = root.queue[0]
           root.queue = root.queue.slice(1)
-          actionProcess.command = next
-          actionProcess.running = true
+          root.launch(actionProcess, next)
         })
         return
       }

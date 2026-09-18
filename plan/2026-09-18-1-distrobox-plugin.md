@@ -369,7 +369,34 @@ the same commit.
    clones the repo and would refuse it. (b) It asserts that `qmldir`
    declares the `DistroboxState` singleton; without that line the lock
    silently stops being shared.
-9. **Step 4: no fallback needed.** The menu and all three monitor bars report
+9. **Step 11: no `DBX_NON_INTERACTIVE` on upgrade (a spec change).** The
+   approved argv carried it. `distrobox-enter:662-668` shows that for a box
+   the engine cannot find, "non-interactive" answers **yes** to "Create it
+   now?", and so does an empty answer or EOF. For an upgrade of a box that
+   exists it changes nothing. It was only ever able to create a box nobody
+   asked for.
+10. **Step 11: unknown names never reach a command, and every prompt gets
+    "n".** Found live under the docker engine: `start t1` (a podman-only box),
+    sent through IPC, hung forever inside distrobox's `[Y/n]` prompt with the
+    lock held, because Quickshell's `Process` kept stdin open. The fixes:
+    - (a) `DistroboxState.known(name)` guards start, stop, restart, remove,
+      upgrade and enter in the shared state, so keys, buttons and IPC are all
+      covered;
+    - (b) `launch()` enables stdin, writes `n\n` and closes it, so a box
+      deleted between the list and the command gets "no" instead of a hang
+      or an unwanted create.
+11. **Step 11: `errorText` reports the reason, not the progress.** Found
+    live: a failed first start showed "Starting container... [ OK ]".
+    distrobox prints progress on stderr and puts the failure at the *end* of
+    a progress line ("Firing up init system... Error: …"). The last `Error`
+    found anywhere in a line now wins; distrobox's generic "An error occurred"
+    is skipped. The test uses the real output's shape.
+12. **Step 11: `polls` in `status`.** A counter of list queries, so polling
+    can be measured from outside (see the test results).
+13. **Step 11: the Init row warns first.** Its hint says the image must ship
+    systemd. The toolbox images do not, and a live `--init` box failed its
+    first start with "no init found". The docs' troubleshooting covers it.
+14. **Step 4: no fallback needed.** The menu and all three monitor bars report
    the same singleton instance, so the IPC-forwarding fallback was not built.
 
 ### Test results
@@ -440,6 +467,22 @@ the same commit.
 - **Step 10:** every `Model.SHORTCUTS` text appears verbatim in the README
   (checked by script, 23 of 23). The IPC verbs documented in the README match
   `Panel.qml`'s `IpcHandler` exactly (10 of 10).
+- **Step 11, live checklist:**
+  - *Polling:* two outside instruments failed and were thrown away (`strace`
+    is blocked by `ptrace_scope=1`; sampling `/proc` misses the short-lived
+    children). The `polls` counter measured: with every surface closed,
+    **2 polls in 70 s** (the bar's 30 s poll only); with the popup open, one
+    per ~3 s (8 → 13 in 15 s).
+  - *Docker:* with `containerManager: docker` the list comes from docker, and
+    the distrobox process has `DBX_CONTAINER_MANAGER=docker`. `start t1` is
+    now refused up front ("No box called t1 in docker").
+  - *Race:* `t2` was deleted behind a stale list, then started through IPC.
+    The lock released in about 1 s, no process hung, and `t2` was **not**
+    re-created.
+  - *Theme:* switching Gruvbox → Catppuccin Latte recoloured the open popup
+    live (background, accent, urgent). Restored to Gruvbox.
+  - *Error line:* on the real stderr of a failed `--init` start, `errorText`
+    now gives "could not set up init system, no init found! …".
 
 ### Review fixes
 

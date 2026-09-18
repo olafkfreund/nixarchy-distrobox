@@ -90,6 +90,20 @@ test("capLine cuts at 2 KB", () => {
   ok(long.endsWith("…"))
 })
 
+test("errorText prefers distrobox's last real Error line over its progress output", () => {
+  // Byte-for-byte shape of a real failed first start (fedora-toolbox with
+  // --init): the error sits at the end of a progress line, after a tab.
+  const raw = "Starting container...                   \t\x1b[32m [ OK ]\n" +
+    "\x1b[0mSetting up init system...               \t\x1b[32m [ OK ]\n" +
+    "\x1b[0mFiring up init system...                \t\x1b[31m Error: could not set up init system, no init found!\n" +
+    "\x1b[0m\n"
+  eq(Model.errorText(raw), "could not set up init system, no init found!")
+  // The same message on a line of its own (podman logs, xtrace noise).
+  const traced = "+ printf 'x'\nError: no init found\n+ exit 1\nError: An error occurred\n"
+  eq(Model.errorText(traced), "no init found")
+  eq(Model.errorText("Error: An error occurred\n"), "Error: An error occurred".replace(/^Error:\s*/, ""))
+})
+
 test("errorText returns the first meaningful line without the Error: prefix", () => {
   eq(Model.errorText("\n\nError: no such container fedora\nmore"), "no such container fedora")
   eq(Model.errorText("\x1b[31mCannot clone a running container.\x1b[0m"), "Cannot clone a running container.")

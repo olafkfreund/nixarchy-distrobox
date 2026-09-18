@@ -42,9 +42,12 @@ test("stop takes several names; rm is --force without --yes or --rm-home", () =>
   eq(Model.removeArgv("podman", "a"), PREFIX.concat(["distrobox", "rm", "--force", "a"]))
 })
 
-test("upgrade one or all, non-interactive", () => {
-  eq(Model.upgradeArgv("podman", "a"), PREFIX.concat(["DBX_NON_INTERACTIVE=1", "distrobox", "upgrade", "a"]))
+test("upgrade one or all, never with DBX_NON_INTERACTIVE (it would auto-create a missing box)", () => {
+  eq(Model.upgradeArgv("podman", "a"), PREFIX.concat(["distrobox", "upgrade", "a"]))
   eq(Model.upgradeArgv("podman", "").slice(-1), ["--all"])
+  for (const argv of [Model.upgradeArgv("podman", "a"), Model.startArgv("podman", "a"), Model.enterArgv("podman", "a")]) {
+    ok(!argv.some(a => a.indexOf("DBX_NON_INTERACTIVE") === 0))
+  }
 })
 
 test("restart is stop then start", () => {

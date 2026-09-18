@@ -189,6 +189,11 @@ host shell. The limits are:
 - engine flags must be `--flag` or `--flag=value`, with no spaces inside a
   value.
 
+**A box made with Init fails its first start: "no init found".** `--init`
+needs an image that ships an init system, and the toolbox images do not.
+Recreate it with `systemd` in **Extra packages** (plus `dbus` on Debian and
+Ubuntu), or choose an image that includes systemd.
+
 **"Busy: … — press o to watch".** Only one change runs at a time, across the
 popup and the menu. Wait for it to finish, or press `o` to watch it.
 
