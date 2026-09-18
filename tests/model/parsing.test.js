@@ -40,8 +40,12 @@ test("normalizeBox reads a docker row, including an alias list in Names", () => 
   eq(b.shortImage, "library/ubuntu:24.04")
 })
 
-test("a box that exited non-zero is failing; a created box is not", () => {
-  eq(box({ State: "exited", Status: "Exited (137) 2 minutes ago" }).failing, true)
+test("a box that exited non-zero is failing; a stopped or created box is not", () => {
+  eq(box({ State: "exited", Status: "Exited (1) 2 minutes ago" }).failing, true)
+  eq(box({ State: "exited", Status: "Exited (126) 2 minutes ago" }).failing, true)
+  // What `distrobox stop` leaves behind: TERM, or KILL after a timeout.
+  eq(box({ State: "exited", Status: "Exited (143) 4 seconds ago" }).failing, false)
+  eq(box({ State: "exited", Status: "Exited (137) 4 seconds ago" }).failing, false)
   eq(box({ State: "created", Status: "Created" }).failing, false)
 })
 

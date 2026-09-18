@@ -329,11 +329,36 @@ the same commit.
 
 ### Deviations
 
-_None yet._
+1. **Step 3: `~/` expansion in Model.** A leading `~/` in `home` and in each
+   volume side is expanded to `$HOME` in `createArgv`. distrobox puts `--home`
+   inside `"…"`, where the host shell does not expand `~`, and
+   `distrobox-create:891` would `mkdir -p` a literal `~` directory. This does
+   not change the allowlist; it is what makes the approved "absolute or `~/`"
+   rule mean what it says.
+2. **Step 5: stop signals are not failures.** Found live: a clean
+   `distrobox stop` leaves `Exited (143)` (the box's init got SIGTERM), and a
+   stop that times out leaves `137` (SIGKILL). The spec's "urgent when the
+   exit code is not 0" painted every stopped box red. Exit codes 129, 130, 137
+   and 143 now read "Stopped" and are not `failing`; any other non-zero code
+   still does.
+3. **Step 5: the `?` sheet scrolls.** 23 shortcuts do not fit the bar popup.
+   `ShortcutSheet.qml` wraps its column in a `Flickable`, and j/k scroll it
+   while it is open (it is no longer a verbatim podman copy).
+4. **Step 4: no fallback needed.** The menu and all three monitor bars report
+   the same singleton instance, so the IPC-forwarding fallback was not built.
 
 ### Test results
 
-_Pending._
+- **Step 4, live:** the singleton is shared (same `instance` from the menu
+  and from the bar). A start from the bar holds the lock; a concurrent
+  `stopAll` is refused with "Busy: starting t1 — wait for it to finish";
+  `DBX_CONTAINER_MANAGER=podman` is in the distrobox process environment.
+- **Step 5, live (bar popup, driven with `wtype`):** the list renders with
+  the theme. `j` `x` opens the delete confirm with Cancel focused; Enter
+  cancels and `t1` survives. `?` opens the sheet. `s` stops, then starts
+  (the row shows "starting…" and every mutation button is disabled until
+  init is done). Esc closes, and `views` drops to 0. `qs log` has no QML
+  errors from the plugin.
 
 ### Review fixes
 

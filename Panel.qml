@@ -45,8 +45,13 @@ Panel {
   }
 
   onOpenedChanged: {
-    if (opened) DistroboxState.acquire("view")
-    else DistroboxState.release("view")
+    if (opened) {
+      DistroboxState.acquire("view")
+      view.reset()
+    } else {
+      DistroboxState.release("view")
+      view.dismiss()
+    }
   }
 
   IpcHandler {
@@ -83,6 +88,28 @@ Panel {
     onPressed: function(b) {
       if (b === Qt.MiddleButton) DistroboxState.refresh()
       else root.toggle()
+    }
+  }
+
+  // ----------------------------------------------------------------- panel
+
+  KeyboardPanel {
+    id: panel
+    anchorItem: button
+    owner: root
+    bar: root.bar
+    open: root.opened
+    focusTarget: view.keyTarget
+    contentWidth: panel.fittedContentWidth(Style.space(470))
+    contentHeight: panel.fittedContentHeight(view.implicitHeight)
+
+    DistroboxView {
+      id: view
+      anchors.fill: parent
+      foreground: root.foreground
+      fontFamily: root.fontFamily
+      onCloseRequested: root.close()
+      onSwitchPanelRequested: function(direction) { root.switchPanel(direction) }
     }
   }
 }

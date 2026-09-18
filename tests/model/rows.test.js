@@ -23,6 +23,9 @@ test("rowsFor builds keyed rows with subtitle and status", () => {
   eq(rows[0].subtitle, "fedora-toolbox:latest")
   eq(rows[1].status, "Exited (2)")
   eq(rows[1].failing, true)
+  eq(Model.rowsFor([stopped("a", 143)])[0].status, "Stopped")
+  eq(Model.rowsFor([stopped("a", 0)])[0].status, "Stopped")
+  eq(Model.rowsFor([box({ Names: "c", ID: "c0", State: "created", Status: "Created" })])[0].status, "Created")
 })
 
 test("rowRecord types every field", () => {

@@ -221,6 +221,15 @@ function exitCode(status) {
   return match ? parseInt(match[1], 10) : -1
 }
 
+// 128 + the signal that ended the box's init. `distrobox stop` sends TERM
+// (143), and a stop that times out escalates to KILL (137): that is a box
+// being stopped, not one that failed.
+var STOP_CODES = [129, 130, 137, 143]
+
+function isStopCode(code) {
+  return STOP_CODES.indexOf(code) !== -1
+}
+
 function normalizeBox(raw, homes, hostHome) {
   var name = normalizeName(raw && raw.Names)
   var state = trim(raw && raw.State).toLowerCase()
@@ -237,7 +246,7 @@ function normalizeBox(raw, homes, hostHome) {
     status: status,
     up: state === "running",
     exitCode: code,
-    failing: state !== "running" && code > 0,
+    failing: state !== "running" && code > 0 && !isStopCode(code),
     home: home,
     homeLabel: homeLabel(home, hostHome),
     search: (name + " " + image).toLowerCase()
@@ -313,7 +322,9 @@ function rowRecord(row) {
 function statusText(box) {
   if (!box) return ""
   if (box.up) return box.status
+  if (isStopCode(box.exitCode)) return "Stopped"
   if (box.exitCode > 0) return "Exited (" + box.exitCode + ")"
+  if (box.exitCode === 0) return "Stopped"
   return box.status || box.state
 }
 
