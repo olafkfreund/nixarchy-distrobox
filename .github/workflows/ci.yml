@@ -28,3 +28,11 @@ jobs:
       # `result` itself is a symlink, so look inside what it points to.
       - name: no symlinks in the built plugin
         run: test -z "$(find "$(readlink -f result)" -mindepth 1 -type l)"
+
+      # The showcase ships inside every `omarchy plugin add` clone, so its
+      # captures have a hard budget (plan/2026-09-18-3-pages-showcase.md).
+      - name: docs/img stays within 8 MB
+        run: |
+          size=$(du -sb docs/img 2>/dev/null | cut -f1)
+          echo "docs/img: ${size:-0} bytes"
+          test "${size:-0}" -le 8388608

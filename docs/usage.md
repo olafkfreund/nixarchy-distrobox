@@ -1,8 +1,14 @@
+---
+layout: manual
+title: The manual
+permalink: /usage/
+---
+
 # Using nixarchy.distrobox
 
 A walkthrough, from installing the plugin to fixing the usual problems. The
 reference tables (every key, every setting, IPC) are in the
-[README](../README.md).
+[README](https://github.com/olafkfreund/nixarchy-distrobox/blob/main/README.md).
 
 ## What it is
 
@@ -84,7 +90,7 @@ omarchy-shell shell toggle nixarchy.distrobox '{"create":true}'   # straight int
 
 ### Add it to the Omarchy menu
 
-Paste the row in [`share/omarchy-menu.jsonc`](../share/omarchy-menu.jsonc) into
+Paste the row in [`share/omarchy-menu.jsonc`](https://github.com/olafkfreund/nixarchy-distrobox/blob/main/share/omarchy-menu.jsonc) into
 `~/.config/omarchy/extensions/omarchy-menu.jsonc`. After that, searching for
 distrobox, boxes or toolbox in the Omarchy menu (Super+Alt+Space) finds it.
 
@@ -159,7 +165,7 @@ is.
 
 The bar widget's settings are `refreshIntervalSec`, `showStopped`,
 `containerManager` and `hideWhenEmpty`. What each one does is in the
-[README](../README.md#settings). The menu reads the same settings.
+[README](https://github.com/olafkfreund/nixarchy-distrobox/blob/main/README.md#settings). The menu reads the same settings.
 
 On docker, set **Container engine** to `docker`. The list then comes from
 docker, and every distrobox command is told to use docker too, so nothing ever
