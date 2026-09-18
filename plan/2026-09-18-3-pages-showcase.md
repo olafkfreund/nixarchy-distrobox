@@ -143,8 +143,27 @@ deviation updates this file in the same commit.
 
 ### Deviations
 
-_None yet._
+1. **Step 2: `capture.sh` keeps its record in `$XDG_RUNTIME_DIR`, not
+   `docs/.capture-created`.** That is where podman's script keeps its record.
+   It is outside the repository, so no `.gitignore` entry is needed and it
+   cannot be committed by accident. The saved `shell.json` and menu file live
+   in the same directory.
+2. **Step 2: demo boxes get their own homes** under
+   `~/.local/share/distrobox/demo-*`, so distrobox's first-run setup never
+   writes into the owner's home. Teardown removes only recorded paths that
+   match that prefix. Restores use `cp -a`, so a symlinked config file would
+   come back as a symlink.
 
 ### Test results
 
-_Pending._
+- **Step 1:** the local Jekyll build succeeds. `/usage/` has the sidebar with
+  9 section links, and the target ids exist.
+- **Step 2:**
+  - `shellcheck` is clean.
+  - `--setup` took 28 s: `demo-fedora` running, `demo-ubuntu` created,
+    `demo-broken` Exited (1) (a real "no init found").
+  - A second `--setup` refused, listing every collision.
+  - After `--teardown`, the container list, the distrobox homes, and both
+    config files (sha256, file type, mode) are identical to the pre-setup
+    snapshot, and the run directory is gone. A second `--teardown` is a
+    no-op.
