@@ -16,8 +16,10 @@ in two forms:
 Both share one state, so a job started in one is visible, and locked, in the
 other.
 
-The walkthrough, from install to troubleshooting, is
-[`docs/usage.md`](docs/usage.md).
+**See it working:** <https://olafkfreund.github.io/nixarchy-distrobox/>, with real
+screenshots and recordings. The walkthrough, from install to troubleshooting, is
+[`docs/usage.md`](docs/usage.md), which is also
+[on the site](https://olafkfreund.github.io/nixarchy-distrobox/usage/).
 
 ## What it does
 

@@ -221,3 +221,8 @@ deviation updates this file in the same commit.
   in headless Chromium match the nixarchy and podman look. The enlarged bar
   glyph uses `image-rendering: pixelated`, so the browser does not blur a 3×
   scale.
+- **Step 6:** the README links the site and the manual, AGENTS.md has
+  "Retaking the captures" (with the key-guard and tooltip lessons from this
+  run), and CI has the 8 MB `docs/img` step. `nix flake check` passes, the
+  package still has exactly 12 runtime files (`docs/` stays out), and
+  `docs/img` is 2 624 304 bytes.
