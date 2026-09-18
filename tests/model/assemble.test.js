@@ -155,3 +155,16 @@ test("templateChoices lists file entries after the built-ins; applyFileTemplate 
   const before = Object.assign(Model.emptyForm(), { name: "keep" })
   eq(Model.applyFileTemplate(before, bad), before)
 })
+
+test("templatesPath expands ~ and falls back to the default for anything odd", () => {
+  eq(Model.templatesPath("~/boxes.ini", "/home/user"), "/home/user/boxes.ini")
+  eq(Model.templatesPath("/etc/distrobox/t.ini", "/home/user"), "/etc/distrobox/t.ini")
+  for (const odd of ["", "relative.ini", "~/a b.ini", "$(id)", undefined])
+    eq(Model.templatesPath(odd, "/home/user"), "/home/user/.config/distrobox/boxes.ini", String(odd))
+})
+
+test("the menu reads templatesFile as a string setting", () => {
+  const defaults = { templatesFile: "~/.config/distrobox/boxes.ini" }
+  const bar = { layout: { right: [{ id: "nixarchy.distrobox", templatesFile: "~/t.ini" }] } }
+  eq(Model.settingsFor(bar, "nixarchy.distrobox", defaults).templatesFile, "~/t.ini")
+})

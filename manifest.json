@@ -25,7 +25,8 @@
       "refreshIntervalSec": 30,
       "showStopped": true,
       "containerManager": "podman",
-      "hideWhenEmpty": false
+      "hideWhenEmpty": false,
+      "templatesFile": "~/.config/distrobox/boxes.ini"
     },
     "schema": [
       {
@@ -62,6 +63,13 @@
         "label": "Hide the bar icon when there are no boxes",
         "description": "On removes the button from the bar until there is a box to show.",
         "defaultValue": false
+      },
+      {
+        "key": "templatesFile",
+        "type": "string",
+        "label": "Your templates",
+        "description": "A distrobox assemble .ini file; each [section] appears under \"Yours\" in the create form's Start from list. Read only, never run: the plugin parses it itself and every value is checked like typed input.",
+        "defaultValue": "~/.config/distrobox/boxes.ini"
       }
     ]
   },

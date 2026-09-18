@@ -1242,6 +1242,15 @@ function fileTemplates(text) {
   return { templates: out, errors: parsed.errors }
 }
 
+var DEFAULT_TEMPLATES_FILE = "~/.config/distrobox/boxes.ini"
+
+// The template file's absolute path. Anything that is not a plain path falls
+// back to the default, so a setting can never name something odd to read.
+function templatesPath(value, hostHome) {
+  var v = trim(value)
+  return expandHome(isPath(v) ? v : DEFAULT_TEMPLATES_FILE, hostHome)
+}
+
 // A usable file template applied to the form: its values, with a name the user
 // already typed kept.
 function applyFileTemplate(form, entry) {

@@ -22,6 +22,7 @@ Singleton {
   readonly property bool showStopped: settings.showStopped !== false
   readonly property string engine: Model.engineFor(settings.containerManager)
   readonly property string hostHome: Quickshell.env("HOME") || ""
+  readonly property string templatesPath: Model.templatesPath(settings.templatesFile, hostHome)
 
   // A token to prove from outside that every surface holds this one instance.
   readonly property string instanceId: Math.random().toString(36).substring(2, 10)
@@ -338,4 +339,26 @@ Singleton {
   }
 
   Process { id: copyProcess }
+
+  // The user's own templates (#8). Read and parsed here, never handed to
+  // distrobox; a missing file is simply no templates.
+  property var userTemplates: []
+  property var templateFileErrors: []
+
+  FileView {
+    path: root.templatesPath
+    watchChanges: true
+    blockLoading: false
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: {
+      var parsed = Model.fileTemplates(text())
+      root.userTemplates = parsed.templates
+      root.templateFileErrors = parsed.errors
+    }
+    onLoadFailed: function(err) {
+      root.userTemplates = []
+      root.templateFileErrors = []
+    }
+  }
 }

@@ -18,6 +18,8 @@ FocusScope {
   id: root
 
   property var boxes: []
+  // The user's own templates from the assemble file (#8), after the built-ins.
+  property var fileTemplates: []
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
   readonly property color dim: Qt.darker(foreground, 1.5)
@@ -39,16 +41,19 @@ FocusScope {
   // (that row is not a text field, so its typing is kept here).
   property int templateIndex: -1
   property string templateFilter: ""
+  // Why a picked file template could not be used; cleared on the next move.
+  property string templateNotice: ""
 
   readonly property var fields: Model.visibleFields(advanced)
   readonly property var current: fieldIndex >= 0 && fieldIndex < fields.length ? fields[fieldIndex] : null
   readonly property var check: Model.validateForm(form, boxes)
   readonly property var stoppedNames: Model.stoppedBoxNames(boxes)
   readonly property var imageChoices: Model.imagesMatching(form.image === Model.DEFAULT_IMAGE ? "" : form.image).slice(0, 6)
-  readonly property var templateChoices: Model.templateChoices(templateFilter)
+  readonly property var templateChoices: Model.templateChoices(templateFilter, fileTemplates)
   readonly property string templateLabel: {
     var t = Model.templateById(form.template)
-    return t ? t.label : "Blank"
+    if (t) return t.label
+    return String(form.template).indexOf("file:") === 0 ? form.template.substring(5) + " (yours)" : "Blank"
   }
 
   implicitHeight: formColumn.implicitHeight
@@ -62,6 +67,7 @@ FocusScope {
     root.imageIndex = -1
     root.templateIndex = -1
     root.templateFilter = ""
+    root.templateNotice = ""
     root.fieldIndex = 0
     Qt.callLater(root.focusCurrent)
   }
@@ -96,6 +102,7 @@ FocusScope {
     root.imageIndex = -1
     root.templateIndex = -1
     root.templateFilter = ""
+    root.templateNotice = ""
     var next = root.fieldIndex + delta
     // Unshare rows under "everything" are inert while it is on.
     while (next >= 0 && next < root.fields.length && root.fields[next].underAll && root.form.unshareAll) next += delta
@@ -138,7 +145,19 @@ FocusScope {
 
   function pickTemplate(index) {
     if (index < 0 || index >= root.templateChoices.length) return
-    root.form = Model.applyTemplate(root.form, root.templateChoices[index].id)
+    var choice = root.templateChoices[index]
+    if (choice.source === "file") {
+      // A section the checks refused is listed, but picking it changes
+      // nothing; it says why instead.
+      if (!choice.usable) {
+        root.templateNotice = choice.label + ": " + choice.reasons[0]
+        return
+      }
+      root.form = Model.applyFileTemplate(root.form, choice)
+    } else {
+      root.form = Model.applyTemplate(root.form, choice.id)
+    }
+    root.templateNotice = ""
     root.templateIndex = -1
     root.templateFilter = ""
   }
@@ -401,8 +420,11 @@ FocusScope {
                     required property int index
                     width: parent ? parent.width : 0
                     text: (index === root.templateIndex ? "›  " : "   ") + modelData.label +
+                      (modelData.source === "file" ? "  · yours" : "") +
+                      (modelData.usable === false ? "  · can't use" : "") +
                       (modelData.tested ? "  · tested" : "") + (modelData.image ? "   " + modelData.image : "")
                     textFormat: Text.PlainText
+                    opacity: modelData.usable === false ? 0.55 : 1.0
                     color: index === root.templateIndex ? Color.accent : root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption
@@ -447,11 +469,13 @@ FocusScope {
               Text {
                 visible: text !== ""
                 width: parent.width
-                text: fieldItem.error !== "" ? fieldItem.error
+                text: fieldItem.modelData.kind === "template" && root.templateNotice !== "" ? root.templateNotice
+                  : fieldItem.error !== "" ? fieldItem.error
                   : (fieldItem.isCurrent && fieldItem.warning !== "" ? fieldItem.warning
                   : (fieldItem.isCurrent && !fieldItem.takesText && fieldItem.modelData.hint ? fieldItem.modelData.hint : ""))
                 textFormat: Text.PlainText
-                color: fieldItem.error !== "" ? Color.urgent : root.dim
+                color: fieldItem.error !== "" || (fieldItem.modelData.kind === "template" && root.templateNotice !== "")
+                  ? Color.urgent : root.dim
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
                 wrapMode: Text.WordWrap
