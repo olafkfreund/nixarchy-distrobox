@@ -124,6 +124,12 @@ Singleton {
 
   // -------------------------------------------------------------- actions
 
+  // A "Busy: …" refusal is about the operation that held the lock; once that
+  // ends, the notice is wrong, so every exit handler drops it.
+  function clearBusyNotice() {
+    if (root.lastError.indexOf("Busy: ") === 0) root.lastError = ""
+  }
+
   function busyText() {
     if (streamProcess.running) return "Busy: " + root.streamTitle + " — press o to watch"
     return "Busy: " + root.pendingVerb + (root.pendingName ? " " + root.pendingName : "") + " — wait for it to finish"
@@ -264,6 +270,7 @@ Singleton {
     stderr: StdioCollector { id: actionErr; waitForEnd: true }
 
     onExited: function(code) {
+      if (root.queue.length === 0 || code !== 0) root.clearBusyNotice()
       if (code !== 0) {
         root.lastError = Model.errorText(actionErr.text) || (root.pendingVerb + " failed (exit " + code + ")")
         root.queue = []
@@ -292,6 +299,7 @@ Singleton {
     stderr: SplitParser { onRead: function(line) { root.appendLog(line) } }
 
     onExited: function(code) {
+      root.clearBusyNotice()
       root.streamExit = code
       root.appendLog("── exit " + code + " · " + (code === 0 ? "done" : "failed"))
       if (code !== 0) root.lastError = root.streamTitle + " failed (exit " + code + ") — o shows the log"

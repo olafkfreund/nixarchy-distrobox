@@ -344,7 +344,11 @@ the same commit.
 3. **Step 5: the `?` sheet scrolls.** 23 shortcuts do not fit the bar popup.
    `ShortcutSheet.qml` wraps its column in a `Flickable`, and j/k scroll it
    while it is open (it is no longer a verbatim podman copy).
-4. **Step 4: no fallback needed.** The menu and all three monitor bars report
+4. **Step 6: a "Busy: …" refusal clears itself.** Found live: the refusal
+   stayed on screen after the operation it described had finished. Every
+   exit handler now drops a `Busy: ` notice (`clearBusyNotice`); real errors
+   stay until dismissed.
+5. **Step 4: no fallback needed.** The menu and all three monitor bars report
    the same singleton instance, so the IPC-forwarding fallback was not built.
 
 ### Test results
@@ -359,6 +363,19 @@ the same commit.
   (the row shows "starting…" and every mutation button is disabled until
   init is done). Esc closes, and `views` drops to 0. `qs log` has no QML
   errors from the plugin.
+- **Step 6, live:**
+  - `g` on `t1` streamed a dnf upgrade and ended with `── exit 0 · done`.
+  - `g` on a never-started `t2` (ubuntu-toolbox 24.04) streamed its first-start
+    setup and an apt upgrade for several minutes.
+  - Esc returned to the list while the `distrobox upgrade t2` process kept
+    running (`pgrep`). `s` on `t1` was refused with "Busy: upgrade t2 — press
+    o to watch", and every mutation button was disabled. `o` reattached.
+  - `k` switched the hint to "G follow"; `G` went back to "following" at the
+    end.
+  - The exit line arrived and the list refreshed.
+  - *Host note:* the first `t2` pull failed with "no space left on device"
+    because `/var/tmp` (a 2 GB tmpfs) was full of pytest leftovers. The owner
+    approved removing them.
 
 ### Review fixes
 

@@ -72,7 +72,24 @@ FocusScope {
   // Deferred, and decided by the mode at the time it runs, so an open that
   // lands straight in the form (IPC create) keeps the form's focus.
   function focusForMode() {
-    keyCatcher.forceActiveFocus()
+    if (root.mode === "log") logView.forceActiveFocus()
+    else keyCatcher.forceActiveFocus()
+  }
+
+  function setMode(next) {
+    root.mode = next
+    root.helpOpen = false
+    Qt.callLater(root.focusForMode)
+  }
+
+  // o: back to whatever the last create or upgrade printed.
+  function openLog() {
+    if (DistroboxState.log.length === 0) return
+    setMode("log")
+  }
+
+  function upgrade(name) {
+    if (DistroboxState.upgrade(name)) setMode("log")
   }
 
   // Called when the surface closes.
@@ -94,6 +111,7 @@ FocusScope {
     }
     if (verb === "remove") { askRemove(box); return }
     if (verb === "copy") { DistroboxState.copyName(name); return }
+    if (verb === "upgrade") { upgrade(name); return }
     if (!Model.allowsVerb(Model.rowsFor([box])[0], verb, root.lock)) {
       if (DistroboxState.mutating) DistroboxState.lastError = DistroboxState.busyText()
       return
@@ -175,12 +193,15 @@ FocusScope {
     if (key === "/") { filterField.forceActiveFocus(); return }
     if (key === "u") { DistroboxState.refresh(); return }
     if (key === "S") { askStopAll(); return }
+    if (key === "U") { upgrade(null); return }
+    if (key === "o") { openLog(); return }
 
     if (!cursorActive || !cursorBox) return
     if (key === "e") dispatch(cursorBox.name, "enter")
     else if (key === "s") toggleAtCursor()
     else if (key === "r") { if (cursorBox.up) dispatch(cursorBox.name, "restart") }
     else if (key === "y") dispatch(cursorBox.name, "copy")
+    else if (key === "g") upgrade(cursorBox.name)
   }
 
   // ----------------------------------------------------------------- view
@@ -278,8 +299,23 @@ FocusScope {
           }
         }
 
+        LogView {
+          id: logView
+          visible: root.mode === "log"
+          width: parent.width
+          height: visible ? implicitHeight : 0
+          lines: DistroboxState.log
+          title: DistroboxState.streamTitle
+          running: DistroboxState.streaming
+          exitCode: DistroboxState.streamExit
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          onBackRequested: root.setMode("list")
+        }
+
         TextField {
           id: filterField
+          visible: root.mode === "list"
           width: parent.width
           foreground: root.foreground
           // The operator stays on the first line: a line that ends on a
@@ -303,6 +339,7 @@ FocusScope {
 
         BoxList {
           id: list
+          visible: root.mode === "list"
           width: parent.width
           rows: root.rows
           mutating: DistroboxState.mutating
@@ -319,7 +356,7 @@ FocusScope {
         }
 
         Column {
-          visible: list.count === 0
+          visible: root.mode === "list" && list.count === 0
           width: parent.width
           spacing: Style.spacing.sm
           topPadding: Style.spacing.lg
@@ -419,7 +456,7 @@ FocusScope {
 
         Text {
           width: parent.width
-          visible: text !== "" && DistroboxState.lastError === ""
+          visible: text !== "" && DistroboxState.lastError === "" && root.mode !== "log"
           text: {
             if (DistroboxState.streaming) return DistroboxState.streamTitle + " …   o to watch"
             if (DistroboxState.streamExit >= 0) {
