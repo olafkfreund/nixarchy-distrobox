@@ -142,6 +142,35 @@ this file in the same commit.
    `/run/current-system` with a build of `main`, so the only difference is the
    plugin's rev.
 
+4. **Step 5 carries #7 and #8 as well.** Those features were approved while
+   #4 and #5 waited for the desktop, and were live-checked in the same session.
+   So one lock bump carries all four, after all four PRs are merged. The commit
+   is `chore(flake): bump nixarchy-distrobox (#4, #5, #7, #8)`. Before building
+   from `main`, check that it contains the other agent's `nixarchy-microvm`
+   input (nixos_config #1898). It does: that agent confirmed it on the bus
+   (merge `e494e1154`), so a build from `main` keeps their plugin.
+
 ### Test results
 
-_Pending: the live checks are blocked until the desktop is free (deviation 2)._
+- **Step 1:** `node tests/run.js` passes, including the independent
+  `emptyForm()` case.
+- **Step 2:** the grep finds no `input.text =`, `setText` or `text = String(`
+  left in `CreateForm.qml`, and `nix flake check` passes.
+- **Step 3 (live, p620, 2026-09-19; one session with #5, #7 and #8, the owner
+  away, the guard from deviation 2 in force).** All eight pass:
+  1. Name, image, home and packages typed, then Esc, then reopen with Advanced
+     closed: every field shows its default.
+  2. The same after a real create of `demo-new`.
+  3. A picked and edited image resets to the default image on reopen.
+  4. Text in Volumes, cancel, reopen, open Advanced: Volumes is empty.
+  5. A mid-text insert gives `abcX|def`, with the cursor in place and no keys
+     lost. Select-and-replace and paste behave the same. The fallback is not
+     needed.
+  6. Space on the Advanced row, then Tab: focus is in Hostname. The focus fix
+     is not needed.
+  7. IPC `create` from the bar and from the menu, then typing at once: the text
+     is in Name.
+  8. `qs log`: 0 binding-loop warnings.
+- **Afterwards:** `capture.sh --teardown`. The box list, the distrobox homes,
+  `shell.json`, the menu file and the plugin's Nix link are identical to the
+  snapshot, and the clipboard, DND and workspaces are restored.
