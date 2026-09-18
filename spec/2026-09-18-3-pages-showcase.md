@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 3
 intent: intent/2026-09-18-3-pages-showcase.md
 ---
