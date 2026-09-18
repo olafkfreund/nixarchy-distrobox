@@ -113,16 +113,24 @@ Closing a surface never stops a job.
 ### Create a box
 
 1. Press `c`. The form opens with the cursor on **Name**.
-2. Type a name, then Tab to **Image**. The default is the Fedora toolbox. Press
+2. Type a name, then Tab to **Start from** to begin from a template, or skip
+   it. Press ↓ for the list, type to filter it, and Enter to pick. A
+   template fills the image, a home under `~/.local/share/distrobox/<name>`,
+   and, with **Init** on, the packages systemd needs on that distro. Every
+   field stays editable, and **Blank** puts the defaults back. The built-in
+   Fedora, Ubuntu 24.04, Debian 12 and Arch templates are marked *tested*:
+   each was created with Init on and started on nixarchy with systemd as
+   PID 1.
+3. Tab to **Image**. The default is the Fedora toolbox. Press
    ↓ to move into the list of curated images and Enter to pick one, or type
    any full reference (`registry/path:tag`).
-3. Tab through the rest:
+4. Tab through the rest:
    - **Home directory**: leave it empty to share your home, or give a path such
      as `~/.local/share/distrobox/mybox`.
    - **Extra packages**: installed on first start.
    - **Init**: runs systemd inside the box.
    - **NVIDIA**: shares your driver.
-4. **Advanced** (press Space on it) holds:
+5. **Advanced** (press Space on it) holds:
    - hostname;
    - clone (Space cycles through your stopped boxes);
    - volumes (`host:box[:ro]`, space-separated);
@@ -130,7 +138,7 @@ Closing a surface never stops a job.
    - init and pre-init hooks;
    - platform;
    - the `--unshare-*` switches and `--no-entry`.
-5. Press Enter. If something is wrong, the field says what, and nothing runs.
+6. Press Enter. If something is wrong, the field says what, and nothing runs.
    Otherwise the log opens and shows the image pull and the create as they
    happen.
 
@@ -197,8 +205,8 @@ host shell. The limits are:
 
 **A box made with Init fails its first start: "no init found".** `--init`
 needs an image that ships an init system, and the toolbox images do not.
-Recreate it with `systemd` in **Extra packages** (plus `dbus` on Debian and
-Ubuntu), or choose an image that includes systemd.
+Recreate it from a **Start from** template with Init on, which adds the right
+packages for that distro, or choose an image that includes systemd.
 
 **"Busy: … — press o to watch".** Only one change runs at a time, across the
 popup and the menu. Wait for it to finish, or press `o` to watch it.

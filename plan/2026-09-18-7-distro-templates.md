@@ -128,6 +128,11 @@ deviation updates this file in the same commit.
    `main` once #4 merges, before its own PR. One live session then covers #5,
    #4, #7 and #8.
 
+2. **Step 5: `form.png` is not retaken.** Retaking it needs another desktop
+   input session. The site's still shows the form without the Start from row,
+   which is still accurate for every field it shows. The manual and README
+   describe the new row. Retake it with the next capture session.
+
 ### Test results
 
 - **Steps 2–3:** `node tests/run.js` passes (68 on this branch), and
@@ -158,6 +163,9 @@ deviation updates this file in the same commit.
      So all four are `tested: true` in this commit. The boxes, their homes
      and the two images pulled for them (debian, arch) were removed at
      teardown.
+- **Step 5:** `usage.md` ("Create a box" gains Start from, and the
+  "no init found" entry points to templates) and the README key table. The
+  local Jekyll build succeeds, and `docs/img` is unchanged.
 - **Afterwards:** `capture.sh --teardown`. The box list, the distrobox homes,
   `shell.json`, the menu file and the plugin's Nix link are identical to the
   snapshot, and the clipboard, DND and workspaces are restored.

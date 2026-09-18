@@ -72,6 +72,7 @@ The same list is on the `?` sheet inside the panel (`Model.SHORTCUTS`).
 | Key | Does |
 | --- | --- |
 | `tab` `↓` / `shift+tab` `↑` | Next / previous field |
+| `↓` on Start from | Into the template list; type to filter, `enter` picks, `esc` goes back |
 | `↓` on Image | Into the image list; `enter` picks, `esc` goes back |
 | `space` | Flip a switch, open Advanced, cycle the clone source |
 | `j` `k` | Move between switch rows (in a text field they type) |
