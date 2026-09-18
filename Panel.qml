@@ -64,6 +64,10 @@ Panel {
     function toggle(): void { root.toggle() }
     function refresh(): void { DistroboxState.refresh() }
     function stopAll(): void { DistroboxState.stopAll() }
+    function create(): void {
+      root.open()
+      view.openForm()
+    }
     function start(name: string): void { DistroboxState.start(name) }
     function status(): string { return DistroboxState.statusJson() }
   }

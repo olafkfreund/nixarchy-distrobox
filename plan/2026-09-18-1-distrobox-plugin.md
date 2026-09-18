@@ -348,7 +348,21 @@ the same commit.
    stayed on screen after the operation it described had finished. Every
    exit handler now drops a `Busy: ` notice (`clearBusyNotice`); real errors
    stay until dismissed.
-5. **Step 4: no fallback needed.** The menu and all three monitor bars report
+5. **Step 7: form layout lives in Model.** Field order, kinds, labels and
+   hints are data (`Model.FORM_FIELDS`, `visibleFields`, `firstErrorIndex`,
+   `stoppedBoxNames`, `nextClone`), with tests, rather than hard-coded in QML.
+6. **Step 7: compact switch rows instead of the shell's `Toggle`.** `Toggle`
+   is a full card with a title and a description; 14 of them do not fit a
+   popup. Switch rows use nixarchy-pkg's `■`/`□` glyph style, and the whole
+   form uses `Color.*`/`Style.*` only.
+7. **Step 7: two focus fixes, found live.** (a) Moving from a text field to a
+   switch row left the keyboard in the text field, because
+   `forceActiveFocus()` on a FocusScope restores its last focused child.
+   Switch rows now focus a dedicated `keySink` item instead. (b)
+   `KeyboardPanel` focuses the key catcher on its own schedule after an IPC
+   `create`. The catcher now hands focus on to the current mode's target
+   whenever it gains focus outside list mode.
+8. **Step 4: no fallback needed.** The menu and all three monitor bars report
    the same singleton instance, so the IPC-forwarding fallback was not built.
 
 ### Test results
@@ -376,6 +390,26 @@ the same commit.
   - *Host note:* the first `t2` pull failed with "no space left on device"
     because `/var/tmp` (a 2 GB tmpfs) was full of pytest leftovers. The owner
     approved removing them.
+- **Step 7, live:**
+  - `omarchy shell nixarchy.distrobox.bar create` opened the popup with the
+    form focused, and typing went into Name.
+  - An invalid name ("bad name") showed its error inline and kept the form
+    open; nothing was created.
+  - A keyboard-only create of `t3` covered: the image picked from the inline
+    list, `--home ~/.local/share/distrobox/t3`, `git tmux`, `--init`, Advanced
+    opened, and `~/Documents:/mnt/docs:ro`.
+  - `podman inspect t3` confirms every value: `HOME` is expanded to an
+    absolute path, the volume is mounted read-only, `--init 1` is set, and
+    the packages are `git tmux`. No literal `~` directory was created.
+  - The clone field cycled `t2` → `t3` and skipped the running `t1`.
+- **Step 7, injection proof (real create, box never started):**
+  - Hooks that pass the allowlists but are full of shell (`;`, `&&`, `|`,
+    `$( … )`, backticks, each writing a canary file) created **no** canary on
+    the host. `podman inspect` shows them stored verbatim.
+  - **Control:** the same create with a raw argv that bypasses validation, a
+    `'` in the init hook, **did** run its canary on the host. That shows the
+    test detects an escape, and `validateForm` rejects exactly that input
+    ("Cannot contain ' or line breaks").
 
 ### Review fixes
 

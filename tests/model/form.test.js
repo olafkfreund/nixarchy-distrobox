@@ -141,3 +141,29 @@ test("formSummary names the source", () => {
   eq(Model.formSummary(form()), "create t1 from " + Model.DEFAULT_IMAGE)
   eq(Model.formSummary(form({ clone: "stopped1" })), "create t1 from clone of stopped1")
 })
+
+test("form layout: every field is a form key, and advanced ones hide", () => {
+  const keys = Object.keys(Model.emptyForm())
+  for (const f of Model.FORM_FIELDS) ok(f.kind === "section" || keys.indexOf(f.key) !== -1, f.key)
+  for (const k of keys) ok(Model.FORM_FIELDS.some(f => f.key === k), "no field for " + k)
+  const basic = Model.visibleFields(false)
+  ok(basic.every(f => !f.advanced))
+  eq(basic[basic.length - 1].kind, "section")
+  eq(Model.visibleFields(true).length, Model.FORM_FIELDS.length)
+})
+
+test("firstErrorIndex points at the first field with an error", () => {
+  const fields = Model.visibleFields(true)
+  eq(Model.firstErrorIndex(fields, { volumes: "x", name: "y" }), 0)
+  eq(Model.firstErrorIndex(fields, { volumes: "x" }), fields.findIndex(f => f.key === "volumes"))
+  eq(Model.firstErrorIndex(fields, {}), -1)
+})
+
+test("clone cycles through stopped boxes and back to none", () => {
+  const names = Model.stoppedBoxNames(boxes)
+  eq(names, ["stopped1"])
+  eq(Model.nextClone("", names), "stopped1")
+  eq(Model.nextClone("stopped1", names), "")
+  eq(Model.nextClone("gone", names), "")
+  eq(Model.nextClone("", []), "")
+})

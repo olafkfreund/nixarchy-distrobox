@@ -73,6 +73,7 @@ FocusScope {
   // lands straight in the form (IPC create) keeps the form's focus.
   function focusForMode() {
     if (root.mode === "log") logView.forceActiveFocus()
+    else if (root.mode === "form") createForm.focusCurrent()
     else keyCatcher.forceActiveFocus()
   }
 
@@ -80,6 +81,20 @@ FocusScope {
     root.mode = next
     root.helpOpen = false
     Qt.callLater(root.focusForMode)
+  }
+
+  // c, IPC create, or the menu's {"create":true}.
+  function openForm() {
+    root.mode = "form"
+    root.helpOpen = false
+    createForm.start()
+  }
+
+  function submitForm(form) {
+    if (DistroboxState.create(form)) setMode("log")
+    // Refused (another job holds the lock): the reason is in the error line
+    // on the list, so go and show it.
+    else setMode("list")
   }
 
   // o: back to whatever the last create or upgrade printed.
@@ -195,6 +210,7 @@ FocusScope {
     if (key === "S") { askStopAll(); return }
     if (key === "U") { upgrade(null); return }
     if (key === "o") { openLog(); return }
+    if (key === "c") { openForm(); return }
 
     if (!cursorActive || !cursorBox) return
     if (key === "e") dispatch(cursorBox.name, "enter")
@@ -222,6 +238,11 @@ FocusScope {
       id: keyCatcher
       anchors.fill: parent
       blocked: filterField.activeFocus || root.confirmOpen || root.mode !== "list"
+
+      // KeyboardPanel focuses this catcher when the popup opens, on its own
+      // schedule. Outside the list, send the keyboard on to whatever owns it,
+      // so an IPC create that opens straight into the form keeps the form.
+      onActiveFocusChanged: if (activeFocus && root.mode !== "list") Qt.callLater(root.focusForMode)
 
       onMoveRequested: function(dx, dy) {
         if (root.helpOpen) { if (dy !== 0) helpSheet.scroll(dy); return }
@@ -297,6 +318,18 @@ FocusScope {
               onClicked: root.askStopAll()
             }
           }
+        }
+
+        CreateForm {
+          id: createForm
+          visible: root.mode === "form"
+          width: parent.width
+          height: visible ? implicitHeight : 0
+          boxes: DistroboxState.boxes
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          onSubmitted: function(form) { root.submitForm(form) }
+          onCanceled: root.setMode("list")
         }
 
         LogView {

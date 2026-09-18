@@ -849,3 +849,65 @@ function formSummary(form) {
   var f = form || {}
   return "create " + trim(f.name) + " from " + (trim(f.clone) ? "clone of " + trim(f.clone) : trim(f.image))
 }
+
+// ---------------------------------------------------------------- form layout
+//
+// The order the form shows its fields in, and what each one is. `kind` picks
+// the widget: text, image (text plus the curated list), bool, clone (cycles
+// through stopped boxes), or section (the Advanced switch).
+
+var FORM_FIELDS = [
+  { key: "name", kind: "text", label: "Name", hint: "Required. Letters, digits, _ . -" },
+  { key: "image", kind: "image", label: "Image", hint: "↓ picks from the list, or type a full reference" },
+  { key: "pull", kind: "bool", label: "Pull the image even if it is already here" },
+  { key: "home", kind: "text", label: "Home directory", hint: "Empty shares your home. e.g. ~/.local/share/distrobox/NAME" },
+  { key: "additionalPackages", kind: "text", label: "Extra packages", hint: "Installed on first start, space-separated" },
+  { key: "init", kind: "bool", label: "Run an init system (systemd) inside" },
+  { key: "nvidia", kind: "bool", label: "Share the NVIDIA driver" },
+  { key: "advanced", kind: "section", label: "Advanced" },
+  { key: "hostname", kind: "text", label: "Hostname", advanced: true },
+  { key: "clone", kind: "clone", label: "Clone from", hint: "space cycles through stopped boxes", advanced: true },
+  { key: "volumes", kind: "text", label: "Volumes", hint: "host:box[:ro] pairs, space-separated", advanced: true },
+  { key: "additionalFlags", kind: "text", label: "Engine flags", hint: "--flag or --flag=value, space-separated", advanced: true },
+  { key: "initHooks", kind: "text", label: "Init hooks", hint: "Shell run in the box at each start; no '", advanced: true },
+  { key: "preInitHooks", kind: "text", label: "Pre-init hooks", hint: "Shell run before setup; no \" \\ $ `", advanced: true },
+  { key: "platform", kind: "text", label: "Platform", hint: "e.g. linux/arm64", advanced: true },
+  { key: "unshareAll", kind: "bool", label: "Unshare everything below", advanced: true },
+  { key: "unshareDevsys", kind: "bool", label: "Unshare /dev and /sys", advanced: true, underAll: true },
+  { key: "unshareGroups", kind: "bool", label: "Unshare groups", advanced: true, underAll: true },
+  { key: "unshareIpc", kind: "bool", label: "Unshare IPC", advanced: true, underAll: true },
+  { key: "unshareNetns", kind: "bool", label: "Unshare the network", advanced: true, underAll: true },
+  { key: "unshareProcess", kind: "bool", label: "Unshare processes", advanced: true, underAll: true },
+  { key: "noEntry", kind: "bool", label: "No app-menu entry", advanced: true }
+]
+
+function visibleFields(advanced) {
+  var out = []
+  for (var i = 0; i < FORM_FIELDS.length; i++) {
+    if (!FORM_FIELDS[i].advanced || advanced) out.push(FORM_FIELDS[i])
+  }
+  return out
+}
+
+// Where the cursor lands to show the first error: in field order.
+function firstErrorIndex(fields, errors) {
+  for (var i = 0; i < (fields || []).length; i++) {
+    if (errors && errors[fields[i].key]) return i
+  }
+  return -1
+}
+
+function stoppedBoxNames(boxes) {
+  var out = []
+  for (var i = 0; i < (boxes || []).length; i++) {
+    if (!boxes[i].up) out.push(boxes[i].name)
+  }
+  return out.sort()
+}
+
+// "" (no clone) → first stopped box → … → last → "" again.
+function nextClone(current, names) {
+  var list = [""].concat(names || [])
+  var at = list.indexOf(current || "")
+  return list[(at + 1) % list.length]
+}
