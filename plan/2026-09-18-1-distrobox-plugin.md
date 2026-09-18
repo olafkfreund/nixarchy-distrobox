@@ -410,6 +410,17 @@ the same commit.
     `'` in the init hook, **did** run its canary on the host. That shows the
     test detects an escape, and `validateForm` rejects exactly that input
     ("Cannot contain ' or line breaks").
+- **Step 8, live (menu):**
+  - `toggle '{}'` opened `nixarchy-distrobox-menu` on the focused monitor
+    (DP-2), at 1.45×. Rows show custom homes (`~/.local/share/distrobox/t3`)
+    and the "Stopped" and "Created" states.
+  - Esc removed the layer, and toggling again brought it back.
+  - `'{"create":true}'` opened straight into the form, and typing landed in
+    Name.
+  - `'garbage{'` fell back to the list.
+  - A start of `t3` from the menu held the lock. `start t2` from the bar's IPC
+    was refused ("Busy: starting t3"). Esc closed the menu (`views` 0) while
+    the start kept running.
 
 ### Review fixes
 
