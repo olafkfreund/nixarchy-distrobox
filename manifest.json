@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "nixarchy.distrobox",
+  "name": "Distrobox",
+  "version": "0.1.0",
+  "author": "olafkfreund",
+  "license": "MIT",
+  "description": "Distrobox for Omarchy, on the bar and on a key: every box with its image and home, enter one in a terminal, start, stop, restart, upgrade or delete it, and create a new one from a form that knows every distrobox create flag. Create and upgrade stream their log into the panel.",
+  "homepage": "https://github.com/olafkfreund/nixarchy-distrobox",
+  "kinds": [
+    "menu",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "menu": "Menu.qml",
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Distrobox",
+    "description": "Your distrobox containers, running ones first. Driven from the keyboard: enter opens a terminal inside the box, s starts or stops it, r restarts, g upgrades, x deletes, c creates a new box, U upgrades every box, S stops every box, y copies the name, / filters, u refreshes, o shows the running log, and ? lists the lot inside the panel.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "refreshIntervalSec": 30,
+      "showStopped": true,
+      "containerManager": "podman",
+      "hideWhenEmpty": false
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "description": "How often the bar glyph re-reads the container engine. The panel refreshes every 3 seconds while it is open, regardless of this.",
+        "min": 5,
+        "max": 600,
+        "step": 5,
+        "defaultValue": 30
+      },
+      {
+        "key": "showStopped",
+        "type": "boolean",
+        "label": "Show stopped boxes",
+        "description": "Off lists only running boxes.",
+        "defaultValue": true
+      },
+      {
+        "key": "containerManager",
+        "type": "enum",
+        "label": "Container engine",
+        "description": "The engine your boxes live in. The list is read from it directly, and every distrobox command runs with DBX_CONTAINER_MANAGER set to it, so a docker setup never touches a podman box.",
+        "options": [
+          "podman",
+          "docker"
+        ],
+        "defaultValue": "podman"
+      },
+      {
+        "key": "hideWhenEmpty",
+        "type": "boolean",
+        "label": "Hide the bar icon when there are no boxes",
+        "description": "On removes the button from the bar until there is a box to show.",
+        "defaultValue": false
+      }
+    ]
+  },
+  "keepLoaded": true
+}
