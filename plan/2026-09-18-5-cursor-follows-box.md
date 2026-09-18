@@ -115,6 +115,34 @@ carries both fixes.
    popup closes ours, which stops the keys. Also announce the input session
    on the bus before starting.
 
+3. **Checks 2 and 6 could not be exercised.** The rerun (2026-09-19, one
+   session with #4, #7 and #8, the owner away) places the pointer with
+   Hyprland's `cursor.move` dispatch. A dispatched move produces no hover
+   event in the layer, so hover never selected a row. Both paths go through
+   the same `cursorRequested(key)` signal that the keyboard path uses, which
+   check 1 covers.
+4. **Check 1: Enter was not exercised.** It opens a terminal outside the
+   guarded layer. Enter reads the same `rows[cursorIndex]` as `y` and `x`,
+   which were both checked.
+
 ### Test results
 
-_Pending: the live checks are blocked until the desktop is free (deviation 2)._
+- **Step 1:** `node tests/run.js` passes, with the new `cursorAfter` cases
+  and the existing 56.
+- **Step 2:** the grep finds no assignment to `cursorIndex` outside
+  `rememberCursor`, and `nix flake check` passes.
+- **Step 3 (live, p620, the popup; guard from deviation 2 in force):**
+  1. **Pass.** The cursor was on `demo-ubuntu` (stopped, row 3); after `s` it
+     moved up to row 2 and the highlight moved with it. `y` copied
+     `demo-ubuntu` both times, and `x`'s dialog named `demo-ubuntu`, then
+     Cancel. Also seen: a stop moved `demo-fedora` down, and the cursor
+     followed it.
+  2. Not exercisable (deviation 3).
+  3. **Pass.** A box deleted from a terminal: the cursor clamped to the next
+     row (`demo-broken`).
+  4. **Pass.** Filter to nothing, then clear: the cursor is on row 0.
+  5. **Pass.** An inactive cursor stays inactive through 3 s refreshes.
+  6. Not exercisable (deviation 3).
+- **Afterwards:** `capture.sh --teardown`. The box list, the distrobox homes,
+  `shell.json`, the menu file and the plugin's Nix link are identical to the
+  snapshot, and the clipboard, DND and workspaces are restored.
