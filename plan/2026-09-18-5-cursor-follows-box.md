@@ -93,8 +93,28 @@ carries both fixes.
 
 ### Deviations
 
-_None yet._
+1. **The live checks for #4 and #5 run as one session**, from a throwaway
+   combined build of both branches (never pushed), so the owner steps away
+   once. On p620 the plugin's Nix link is swapped for the test copy for the
+   session and restored to the same store path afterwards.
+2. **The first live session was halted: another agent was testing on the same
+   desktop.** During the session the shell was restarted, not by this task, and
+   a `nixarchy.microvm` bar popup opened where ours had been, showing its own
+   delete dialog. The key guard checked only the generic
+   `omarchy-keyboard-panel` layer, which every bar popup uses, so one `y` may
+   have reached the other plugin's panel. No x, Enter or Space did, and the
+   dialog was left untouched (Cancel focused) and closed by its owner.
+
+   All input stopped. The collision was posted on the agent bus, the session
+   torn down, and the desktop restored. The box list, `shell.json`, the menu
+   file and the plugin's Nix link are identical to the snapshot; DND is off
+   and the workspaces are back.
+
+   **The guard for the rerun:** type only while this plugin's own `status`
+   reports `views == 1` *and* the popup layer is up. Opening another bar
+   popup closes ours, which stops the keys. Also announce the input session
+   on the bus before starting.
 
 ### Test results
 
-_Pending._
+_Pending: the live checks are blocked until the desktop is free (deviation 2)._
