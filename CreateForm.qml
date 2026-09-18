@@ -35,12 +35,21 @@ FocusScope {
   property bool attempted: false
   // -1: the image field itself; 0..n: a row of the image list under it.
   property int imageIndex: -1
+  // The same for the "Start from" list, plus what has been typed to filter it
+  // (that row is not a text field, so its typing is kept here).
+  property int templateIndex: -1
+  property string templateFilter: ""
 
   readonly property var fields: Model.visibleFields(advanced)
   readonly property var current: fieldIndex >= 0 && fieldIndex < fields.length ? fields[fieldIndex] : null
   readonly property var check: Model.validateForm(form, boxes)
   readonly property var stoppedNames: Model.stoppedBoxNames(boxes)
   readonly property var imageChoices: Model.imagesMatching(form.image === Model.DEFAULT_IMAGE ? "" : form.image).slice(0, 6)
+  readonly property var templateChoices: Model.templateChoices(templateFilter)
+  readonly property string templateLabel: {
+    var t = Model.templateById(form.template)
+    return t ? t.label : "Blank"
+  }
 
   implicitHeight: formColumn.implicitHeight
 
@@ -51,6 +60,8 @@ FocusScope {
     root.touched = ({})
     root.attempted = false
     root.imageIndex = -1
+    root.templateIndex = -1
+    root.templateFilter = ""
     root.fieldIndex = 0
     Qt.callLater(root.focusCurrent)
   }
@@ -83,6 +94,8 @@ FocusScope {
       root.touched = t
     }
     root.imageIndex = -1
+    root.templateIndex = -1
+    root.templateFilter = ""
     var next = root.fieldIndex + delta
     // Unshare rows under "everything" are inert while it is on.
     while (next >= 0 && next < root.fields.length && root.fields[next].underAll && root.form.unshareAll) next += delta
@@ -95,7 +108,11 @@ FocusScope {
     if (!f) return
     if (f.kind === "bool") {
       if (f.underAll && root.form.unshareAll) return
-      setValue(f.key, !root.form[f.key])
+      // Init carries the chosen template's init packages with it.
+      if (f.key === "init") root.form = Model.setInit(root.form, !root.form.init)
+      else setValue(f.key, !root.form[f.key])
+    } else if (f.kind === "template") {
+      root.templateIndex = root.templateIndex >= 0 ? -1 : 0
     } else if (f.kind === "section") {
       root.advanced = !root.advanced
     } else if (f.kind === "clone") {
@@ -119,6 +136,13 @@ FocusScope {
     root.submitted(Object.assign({}, root.form))
   }
 
+  function pickTemplate(index) {
+    if (index < 0 || index >= root.templateChoices.length) return
+    root.form = Model.applyTemplate(root.form, root.templateChoices[index].id)
+    root.templateIndex = -1
+    root.templateFilter = ""
+  }
+
   function pickImage(index) {
     if (index < 0 || index >= root.imageChoices.length) return
     setValue("image", root.imageChoices[index].value)
@@ -129,10 +153,15 @@ FocusScope {
   function navKey(event) {
     var key = event.key
     var onImage = root.current && root.current.kind === "image"
+    var onTemplate = root.current && root.current.kind === "template"
     var shift = (event.modifiers & Qt.ShiftModifier) !== 0
 
     if (key === Qt.Key_Escape) {
       if (onImage && root.imageIndex >= 0) root.imageIndex = -1
+      else if (onTemplate && (root.templateIndex >= 0 || root.templateFilter !== "")) {
+        root.templateIndex = -1
+        root.templateFilter = ""
+      }
       else root.canceled()
       return true
     }
@@ -140,16 +169,19 @@ FocusScope {
     if (key === Qt.Key_Backtab || (key === Qt.Key_Tab && shift)) { moveField(-1); return true }
     if (key === Qt.Key_Down) {
       if (onImage && root.imageIndex < root.imageChoices.length - 1) { root.imageIndex += 1; return true }
+      if (onTemplate && root.templateIndex < root.templateChoices.length - 1) { root.templateIndex += 1; return true }
       moveField(1)
       return true
     }
     if (key === Qt.Key_Up) {
       if (onImage && root.imageIndex >= 0) { root.imageIndex -= 1; return true }
+      if (onTemplate && root.templateIndex >= 0) { root.templateIndex -= 1; return true }
       moveField(-1)
       return true
     }
     if (key === Qt.Key_Return || key === Qt.Key_Enter) {
       if (onImage && root.imageIndex >= 0) { pickImage(root.imageIndex); return true }
+      if (onTemplate && root.templateIndex >= 0) { pickTemplate(root.templateIndex); return true }
       if (root.current && root.current.kind === "section") { activate(); return true }
       submit()
       return true
@@ -160,6 +192,21 @@ FocusScope {
   // Keys that reach the scope itself: every row that is not a text field.
   Keys.onPressed: function(event) {
     if (root.navKey(event)) { event.accepted = true; return }
+    // On "Start from", typing filters the list (j and k included); the row is
+    // not a text field, so the filter lives in templateFilter.
+    if (root.current && root.current.kind === "template") {
+      if (event.key === Qt.Key_Backspace) {
+        root.templateFilter = root.templateFilter.slice(0, -1)
+        event.accepted = true
+        return
+      }
+      if (event.text.length === 1 && /[A-Za-z0-9 ._-]/.test(event.text) && event.key !== Qt.Key_Space) {
+        root.templateFilter += event.text
+        root.templateIndex = root.templateChoices.length > 0 ? 0 : -1
+        event.accepted = true
+        return
+      }
+    }
     if (event.key === Qt.Key_Space) { root.activate(); event.accepted = true; return }
     if (event.key === Qt.Key_J) { root.moveField(1); event.accepted = true; return }
     if (event.key === Qt.Key_K) { root.moveField(-1); event.accepted = true; return }
@@ -276,6 +323,7 @@ FocusScope {
                     var f = fieldItem.modelData
                     if (f.kind === "section") return root.advanced ? "▾" : "▸"
                     if (f.kind === "clone") return "⧉"
+                    if (f.kind === "template") return "≡"
                     return root.form[f.key] === true ? "■" : "□"
                   }
                   textFormat: Text.PlainText
@@ -290,6 +338,7 @@ FocusScope {
                   text: {
                     var f = fieldItem.modelData
                     if (f.kind === "clone") return f.label + ":  " + (root.form.clone || "none")
+                    if (f.kind === "template") return f.label + ":  " + root.templateLabel + (root.templateFilter !== "" ? "      filter: " + root.templateFilter : "")
                     if (f.kind === "section") return f.label + (root.advanced ? "" : "   hostname, clone, volumes, hooks, unshare…")
                     return f.label
                   }
@@ -335,6 +384,35 @@ FocusScope {
                 onActiveFocusChanged: if (activeFocus && root.fieldIndex !== fieldItem.index) root.fieldIndex = fieldItem.index
                 Keys.onPressed: function(event) {
                   if (root.navKey(event)) event.accepted = true
+                }
+              }
+
+              // The templates, under "Start from", filtered by what was typed.
+              Column {
+                visible: fieldItem.modelData.kind === "template" && fieldItem.isCurrent
+                width: parent.width
+                spacing: 0
+
+                Repeater {
+                  model: fieldItem.modelData.kind === "template" ? root.templateChoices : []
+
+                  delegate: Text {
+                    required property var modelData
+                    required property int index
+                    width: parent ? parent.width : 0
+                    text: (index === root.templateIndex ? "›  " : "   ") + modelData.label +
+                      (modelData.tested ? "  · tested" : "") + (modelData.image ? "   " + modelData.image : "")
+                    textFormat: Text.PlainText
+                    color: index === root.templateIndex ? Color.accent : root.dim
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    elide: Text.ElideRight
+
+                    MouseArea {
+                      anchors.fill: parent
+                      onClicked: root.pickTemplate(parent.index)
+                    }
+                  }
                 }
               }
 
@@ -392,6 +470,7 @@ FocusScope {
         var move = "tab/↓ next   "
         if (!f) return ""
         if (f.kind === "image") return (root.imageIndex >= 0 ? "enter pick   " : "↓ list   ") + "tab next   esc cancel"
+        if (f.kind === "template") return (root.templateIndex >= 0 ? "enter pick   " : "↓ list   ") + "type to filter   tab next   esc cancel"
         if (f.kind === "bool") return move + "space toggle   enter create   esc cancel"
         if (f.kind === "section") return move + "space " + (root.advanced ? "hide" : "show") + "   esc cancel"
         if (f.kind === "clone") return move + "space next box   enter create   esc cancel"
