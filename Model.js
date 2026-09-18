@@ -447,3 +447,394 @@ function settingsFor(barConfig, id, defaults) {
   }
   return result
 }
+
+// ---------------------------------------------------------------- engine
+
+var ENGINES = ["podman", "docker"]
+
+// The engine never comes from anything a user typed into a field: anything
+// but exactly "docker" is podman, the distrobox default on this desktop.
+function engineFor(value) {
+  return value === "docker" ? "docker" : "podman"
+}
+
+// Every distrobox call starts here. distrobox honours DBX_CONTAINER_MANAGER in
+// enter, stop, rm, create and upgrade; without it, autodetection prefers
+// podman, and a docker user's `x` could delete a podman box of the same name.
+function dbx(engine) {
+  return ["env", "DBX_CONTAINER_MANAGER=" + engineFor(engine)]
+}
+
+// ---------------------------------------------------------------- commands
+//
+// Argv arrays only. Each returns null when an input would not be safe in its
+// slot, and the caller does nothing.
+
+function listArgv(engine, showStopped) {
+  var argv = [engineFor(engine), "ps"]
+  if (showStopped !== false) argv.push("-a")
+  return argv.concat(["--no-trunc", "--filter", "label=manager=distrobox", "--format", BOX_FORMAT])
+}
+
+function allNames(names) {
+  var list = names || []
+  if (list.length === 0) return false
+  for (var i = 0; i < list.length; i++) {
+    if (!isBoxName(list[i])) return false
+  }
+  return true
+}
+
+function inspectHomesArgv(engine, names) {
+  if (!allNames(names)) return null
+  return [engineFor(engine), "inspect", "--type", "container", "--format", HOME_FORMAT].concat(names)
+}
+
+// Runs inside a terminal. distrobox enter waits for the box's first-run setup
+// itself, so a freshly created box can be entered straight away.
+function enterArgv(engine, name) {
+  if (!isBoxName(name)) return null
+  return ["omarchy-launch-tui", "--app-id=org.omarchy.distrobox-enter"]
+    .concat(dbx(engine), ["distrobox", "enter", name])
+}
+
+// Not `<engine> start`: that returns while distrobox-init is still setting the
+// box up, and `ps` already says running. `enter -T -- true` starts the box the
+// way distrobox does, waits for the setup to finish, then exits.
+function startArgv(engine, name) {
+  if (!isBoxName(name)) return null
+  return dbx(engine).concat(["distrobox", "enter", "--name", name, "-T", "--", "true"])
+}
+
+function stopArgv(engine, names) {
+  if (!allNames(names)) return null
+  return dbx(engine).concat(["distrobox", "stop", "--yes"], names)
+}
+
+// Two commands, run back to back under one lock.
+function restartArgvs(engine, name) {
+  if (!isBoxName(name)) return null
+  return [stopArgv(engine, [name]), startArgv(engine, name)]
+}
+
+// --force already makes distrobox rm non-interactive. No --rm-home: the box's
+// home directory is kept, and the confirm dialog says so.
+function removeArgv(engine, name) {
+  if (!isBoxName(name)) return null
+  return dbx(engine).concat(["distrobox", "rm", "--force", name])
+}
+
+function upgradeArgv(engine, name) {
+  var target = name === null || name === undefined || name === "" ? "--all" : name
+  if (target !== "--all" && !isBoxName(target)) return null
+  return dbx(engine).concat(["DBX_NON_INTERACTIVE=1", "distrobox", "upgrade", target])
+}
+
+function copyArgv(name) {
+  if (!isBoxName(name)) return null
+  return ["wl-copy", "--trim-newline", name]
+}
+
+// ---------------------------------------------------------------- row actions
+
+function action(verb, glyph, tooltip, danger, enabled) {
+  return { verb: verb, glyph: glyph, tooltip: tooltip, danger: danger === true, enabled: enabled !== false }
+}
+
+// `lock` is {mutating}. While anything mutates, only entering stays open:
+// entering never changes the box, and it waits for any setup on its own.
+function actionsFor(row, lock) {
+  if (!row) return []
+  var free = !(lock && lock.mutating)
+  var out = [action("enter", Glyph.enter, "Enter in a terminal  (enter)", false, true)]
+  if (row.up) {
+    out.push(action("restart", Glyph.restart, "Restart  (r)", false, free))
+    out.push(action("stop", Glyph.stop, "Stop  (s)", true, free))
+  } else {
+    out.push(action("start", Glyph.play, "Start  (s)", false, free))
+  }
+  out.push(action("upgrade", Glyph.upgrade, "Upgrade packages  (g)", false, free))
+  out.push(action("remove", Glyph.remove, "Delete  (x)", true, free))
+  return out
+}
+
+function allowsVerb(row, verb, lock) {
+  var actions = actionsFor(row, lock)
+  for (var i = 0; i < actions.length; i++) {
+    if (actions[i].verb === verb) return actions[i].enabled
+  }
+  return false
+}
+
+function removeMessage(box, hostHome) {
+  if (!box) return ""
+  var home = box.home && box.home !== trim(hostHome).replace(/\/+$/, "")
+    ? "Its home directory " + box.home + " is kept."
+    : "It shares your home directory, which is not touched."
+  return "Delete the box “" + box.name + "”? " + home
+}
+
+function stopAllMessage(count) {
+  return "Stop " + plural(count, "running box") + "?"
+}
+
+// ---------------------------------------------------------------- images
+
+// Fully qualified on purpose: podman on nixarchy has no unqualified-search
+// registries, so a short name like "alpine" never resolves.
+var DEFAULT_IMAGE = "registry.fedoraproject.org/fedora-toolbox:latest"
+
+var IMAGES = [
+  { value: "registry.fedoraproject.org/fedora-toolbox:latest", label: "Fedora toolbox" },
+  { value: "quay.io/fedora/fedora:latest", label: "Fedora" },
+  { value: "quay.io/toolbx/ubuntu-toolbox:24.04", label: "Ubuntu 24.04 toolbox" },
+  { value: "quay.io/toolbx/ubuntu-toolbox:22.04", label: "Ubuntu 22.04 toolbox" },
+  { value: "docker.io/library/ubuntu:24.04", label: "Ubuntu 24.04" },
+  { value: "quay.io/toolbx-images/debian-toolbox:12", label: "Debian 12 toolbox" },
+  { value: "docker.io/library/debian:12", label: "Debian 12" },
+  { value: "quay.io/toolbx/arch-toolbox:latest", label: "Arch toolbox" },
+  { value: "quay.io/toolbx-images/alpine-toolbox:latest", label: "Alpine toolbox" },
+  { value: "registry.opensuse.org/opensuse/distrobox:latest", label: "openSUSE Tumbleweed" },
+  { value: "quay.io/toolbx-images/rockylinux-toolbox:9", label: "Rocky Linux 9 toolbox" },
+  { value: "quay.io/toolbx-images/almalinux-toolbox:9", label: "AlmaLinux 9 toolbox" },
+  { value: "quay.io/toolbx-images/centos-toolbox:stream9", label: "CentOS Stream 9 toolbox" }
+]
+
+function imagesMatching(query) {
+  var q = trim(query).toLowerCase()
+  if (!q) return IMAGES.slice()
+  var out = []
+  for (var i = 0; i < IMAGES.length; i++) {
+    if ((IMAGES[i].value + " " + IMAGES[i].label).toLowerCase().indexOf(q) !== -1) out.push(IMAGES[i])
+  }
+  return out
+}
+
+// ---------------------------------------------------------------- validation
+//
+// distrobox-create builds one command string and runs `eval ${cmd}` on the
+// host. Each field lands in a different spot of that string: some unquoted,
+// some inside "…", the init hook inside '…'. So each field is checked against
+// what is safe in *its* spot, never against a blocklist of "bad" characters.
+
+function isHostname(value) {
+  var text = String(value || "")
+  if (!text || text.length > 64) return false
+  var labels = text.split(".")
+  for (var i = 0; i < labels.length; i++) {
+    if (!/^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(labels[i])) return false
+  }
+  return true
+}
+
+// registry[:port]/path[:tag][@sha256:digest], lowercase path, the OCI grammar
+// without its rarely used corners.
+function isImageRef(value) {
+  return /^[a-z0-9]+([._-][a-z0-9]+)*(:[0-9]{1,5})?(\/[a-z0-9]+(([._]|__|-+)[a-z0-9]+)*)*(:[A-Za-z0-9_][A-Za-z0-9_.-]{0,127})?(@sha256:[a-f0-9]{64})?$/.test(String(value || ""))
+    && String(value).length <= 255
+}
+
+// No registry host in front: the engine would have to guess one.
+function isShortName(value) {
+  var text = String(value || "")
+  var slash = text.indexOf("/")
+  if (slash === -1) return true
+  var host = text.substring(0, slash)
+  return host.indexOf(".") === -1 && host.indexOf(":") === -1 && host !== "localhost"
+}
+
+function isPlatform(value) {
+  return /^[a-z0-9]+\/[a-z0-9_]+(\/[a-z0-9]+)?$/.test(String(value || ""))
+}
+
+// ponytail: no spaces or quotes in paths. Paths with spaces are a follow-up;
+// they would need a quoting story through distrobox's eval.
+function isPath(value) {
+  return /^(\/|~\/)[A-Za-z0-9_.\/+-]*$/.test(String(value || "")) && String(value).length <= 4096
+}
+
+var VOLUME_OPTION = /^(ro|rw|z|Z|U|O|rslave|rshared|rprivate|slave|shared|private|nocopy|nosuid|nodev|noexec|suid|dev|exec)$/
+
+function isVolumeSpec(value) {
+  var parts = String(value || "").split(":")
+  if (parts.length < 2 || parts.length > 3) return false
+  if (!isPath(parts[0]) || !isPath(parts[1])) return false
+  if (parts.length === 3) {
+    var opts = parts[2].split(",")
+    for (var i = 0; i < opts.length; i++) {
+      if (!VOLUME_OPTION.test(opts[i])) return false
+    }
+  }
+  return true
+}
+
+function tokens(value) {
+  var text = trim(value)
+  return text ? text.split(/\s+/) : []
+}
+
+function everyToken(value, test) {
+  var list = tokens(value)
+  for (var i = 0; i < list.length; i++) {
+    if (!test(list[i])) return false
+  }
+  return true
+}
+
+function isVolumeList(value) {
+  return everyToken(value, isVolumeSpec)
+}
+
+function isPackageList(value) {
+  return everyToken(value, function(t) { return /^[A-Za-z0-9_.+:@=-]+$/.test(t) })
+}
+
+// Flags for the engine, spliced unquoted into the eval'd command. Only
+// --flag or --flag=value tokens, with a value charset the shell ignores.
+function isFlagList(value) {
+  return everyToken(value, function(t) { return /^--?[A-Za-z0-9][A-Za-z0-9-]*(=[A-Za-z0-9_.\/:@,+=-]*)?$/.test(t) })
+}
+
+function hasControlChars(value) {
+  return /[\x00-\x1f\x7f]/.test(String(value || ""))
+}
+
+// Lands inside "…" in the host eval: " \ $ and ` are the only characters that
+// act there. The hook itself is shell, run later inside the box.
+function isPreInitHook(value) {
+  var text = String(value || "")
+  return !hasControlChars(text) && !/["\\$`]/.test(text)
+}
+
+// Lands inside '…' in the host eval, where only ' can end the quoting.
+function isInitHook(value) {
+  var text = String(value || "")
+  return !hasControlChars(text) && text.indexOf("'") === -1
+}
+
+// distrobox puts --home inside "…", where the shell does not expand ~. A
+// literal "~/x" would become a directory called "~" wherever distrobox ran.
+function expandHome(path, hostHome) {
+  var text = String(path || "")
+  var host = trim(hostHome).replace(/\/+$/, "")
+  return text.indexOf("~/") === 0 && host ? host + text.substring(1) : text
+}
+
+function expandVolume(spec, hostHome) {
+  var parts = String(spec).split(":")
+  parts[0] = expandHome(parts[0], hostHome)
+  parts[1] = expandHome(parts[1], hostHome)
+  return parts.join(":")
+}
+
+// ---------------------------------------------------------------- form
+
+var UNSHARE = [
+  { key: "unshareDevsys", flag: "--unshare-devsys", label: "Unshare /dev and /sys" },
+  { key: "unshareGroups", flag: "--unshare-groups", label: "Unshare groups" },
+  { key: "unshareIpc", flag: "--unshare-ipc", label: "Unshare IPC" },
+  { key: "unshareNetns", flag: "--unshare-netns", label: "Unshare the network" },
+  { key: "unshareProcess", flag: "--unshare-process", label: "Unshare processes" }
+]
+
+function emptyForm() {
+  return {
+    name: "",
+    image: DEFAULT_IMAGE,
+    pull: false,
+    home: "",
+    additionalPackages: "",
+    init: false,
+    nvidia: false,
+    hostname: "",
+    clone: "",
+    volumes: "",
+    additionalFlags: "",
+    initHooks: "",
+    preInitHooks: "",
+    platform: "",
+    unshareAll: false,
+    unshareDevsys: false,
+    unshareGroups: false,
+    unshareIpc: false,
+    unshareNetns: false,
+    unshareProcess: false,
+    noEntry: false
+  }
+}
+
+var PATH_CHARS = "letters, digits and _ . / + -"
+
+// {ok, errors: {field: text}, warnings: {field: text}}. An error blocks the
+// create; a warning is shown and allowed.
+function validateForm(form, boxes) {
+  var f = form || {}
+  var errors = {}
+  var warnings = {}
+  var name = trim(f.name)
+  var clone = trim(f.clone)
+
+  if (!name) errors.name = "A name is required"
+  else if (!isBoxName(name)) errors.name = "Letters, digits and _ . - only, starting with a letter or digit, at most 63"
+  else if (boxByName(boxes, name)) errors.name = "A box called " + name + " already exists"
+
+  if (clone) {
+    var source = boxByName(boxes, clone)
+    if (!source) errors.clone = "No box called " + clone
+    else if (source.up) errors.clone = clone + " is running; stop it first (s) to clone it"
+  } else {
+    var image = trim(f.image)
+    if (!image) errors.image = "An image is required"
+    else if (!isImageRef(image)) errors.image = "Not an image reference, e.g. " + DEFAULT_IMAGE
+    else if (isShortName(image)) warnings.image = "No registry given; podman here may not resolve short names"
+  }
+
+  if (trim(f.hostname) && !isHostname(trim(f.hostname))) errors.hostname = "Letters, digits, - and dots, at most 64"
+  if (trim(f.platform) && !isPlatform(trim(f.platform))) errors.platform = "Like linux/amd64 or linux/arm64/v8"
+  if (trim(f.home) && !isPath(trim(f.home))) errors.home = "An absolute path or ~/path, using " + PATH_CHARS
+  if (!isVolumeList(f.volumes)) errors.volumes = "Space-separated host:box[:ro] pairs, paths using " + PATH_CHARS
+  if (!isPackageList(f.additionalPackages)) errors.additionalPackages = "Space-separated package names"
+  if (!isFlagList(f.additionalFlags)) errors.additionalFlags = "Space-separated --flag or --flag=value, no spaces inside a value"
+  if (!isPreInitHook(f.preInitHooks)) errors.preInitHooks = "Cannot contain \" \\ $ ` or line breaks"
+  if (!isInitHook(f.initHooks)) errors.initHooks = "Cannot contain ' or line breaks"
+
+  var ok = true
+  for (var k in errors) { ok = false; break }
+  return { ok: ok, errors: errors, warnings: warnings }
+}
+
+// The full `distrobox create` argv for a form, or null if validateForm says no.
+function createArgv(form, engine, boxes, hostHome) {
+  if (!validateForm(form, boxes).ok) return null
+  var f = form
+  var argv = dbx(engine).concat(["distrobox", "create", "--yes", "--name", trim(f.name)])
+  if (trim(f.clone)) argv.push("--clone", trim(f.clone))
+  else argv.push("--image", trim(f.image))
+  if (trim(f.hostname)) argv.push("--hostname", trim(f.hostname))
+  if (f.pull === true) argv.push("--pull")
+  if (trim(f.home)) argv.push("--home", expandHome(trim(f.home), hostHome))
+  var volumes = tokens(f.volumes)
+  for (var v = 0; v < volumes.length; v++) argv.push("--volume", expandVolume(volumes[v], hostHome))
+  if (trim(f.additionalFlags)) argv.push("--additional-flags", tokens(f.additionalFlags).join(" "))
+  if (trim(f.additionalPackages)) argv.push("--additional-packages", tokens(f.additionalPackages).join(" "))
+  if (trim(f.initHooks)) argv.push("--init-hooks", trim(f.initHooks))
+  if (trim(f.preInitHooks)) argv.push("--pre-init-hooks", trim(f.preInitHooks))
+  if (f.init === true) argv.push("--init")
+  if (f.nvidia === true) argv.push("--nvidia")
+  if (trim(f.platform)) argv.push("--platform", trim(f.platform))
+  if (f.unshareAll === true) {
+    argv.push("--unshare-all")
+  } else {
+    for (var u = 0; u < UNSHARE.length; u++) {
+      if (f[UNSHARE[u].key] === true) argv.push(UNSHARE[u].flag)
+    }
+  }
+  if (f.noEntry === true) argv.push("--no-entry")
+  return argv
+}
+
+// One line for the top of the log.
+function formSummary(form) {
+  var f = form || {}
+  return "create " + trim(f.name) + " from " + (trim(f.clone) ? "clone of " + trim(f.clone) : trim(f.image))
+}
