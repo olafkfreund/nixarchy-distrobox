@@ -83,3 +83,31 @@ test("every shortcut group renders, in the order first seen", () => {
   eq(groups.map(g => g.title), ["Move", "Box", "All boxes", "Panel", "Create form", "Log"])
   ok(groups.every(g => g.entries.length > 0))
 })
+
+test("cursorAfter follows the box, not the row", () => {
+  const rows = (...keys) => keys.map(key => ({ key }))
+  eq(Model.cursorAfter("b", rows("b", "a"), 1), 0)          // moved up
+  eq(Model.cursorAfter("b", rows("a", "c", "b"), 0), 2)     // moved down
+  eq(Model.cursorAfter("b", rows("a", "b"), 1), 1)          // unmoved
+  eq(Model.cursorAfter("gone", rows("a", "c"), 1), 1)       // removed: same row
+  eq(Model.cursorAfter("gone", rows("a"), 4), 0)            // removed: clamped
+  eq(Model.cursorAfter("b", [], 1), 0)                      // empty list
+  eq(Model.cursorAfter("", rows("a", "b"), 1), 1)           // no key: clamp only
+  eq(Model.cursorAfter("", rows("a"), -1), 0)
+})
+
+test("cursorAfter keeps the cursor on a box that moves up when it starts", () => {
+  const before = Model.rowsFor([running("z"), stopped("b")])   // z, b
+  eq(before.map(r => r.key), ["z", "b"])
+  const after = Model.rowsFor([running("z"), running("b")])    // b, z
+  eq(after.map(r => r.key), ["b", "z"])
+  eq(Model.cursorAfter("b", after, 1), 0)
+})
+
+test("cursorAfter: after its box is gone, the fallback row's box is followed", () => {
+  const rows = (...keys) => keys.map(key => ({ key }))
+  const at = Model.cursorAfter("gone", rows("a", "c", "d"), 1)
+  eq(at, 1)
+  const remembered = rows("a", "c", "d")[at].key                // "c"
+  eq(Model.cursorAfter(remembered, rows("c", "a", "d"), at), 0)
+})
