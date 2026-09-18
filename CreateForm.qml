@@ -123,8 +123,6 @@ FocusScope {
     if (index < 0 || index >= root.imageChoices.length) return
     setValue("image", root.imageChoices[index].value)
     root.imageIndex = -1
-    var item = fieldRepeater.itemAt(root.fieldIndex)
-    if (item && item.takesText) item.setText(root.form.image)
   }
 
   // The one place a navigation key is decided. Returns true when handled.
@@ -237,7 +235,6 @@ FocusScope {
             readonly property string warning: root.check.warnings[modelData.key] || ""
 
             function takeFocus() { input.forceActiveFocus() }
-            function setText(value) { input.text = value }
 
             width: fieldsColumn.width
             implicitHeight: body.implicitHeight + Style.spacing.sm * 2
@@ -325,7 +322,12 @@ FocusScope {
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
                 placeholderText: fieldItem.modelData.hint || ""
-                Component.onCompleted: if (fieldItem.takesText) text = String(root.form[fieldItem.modelData.key] || "")
+                // Bound, never assigned: the delegates outlive a close, and a
+                // one-time copy of the text is what left last time's typing on
+                // screen while the form's data had been reset (#4). Typing does
+                // not break this binding (a JavaScript `text = …` would), and
+                // textEdited fires only for typing, so there is no loop.
+                text: fieldItem.takesText ? String(root.form[fieldItem.modelData.key] || "") : ""
                 onTextEdited: {
                   root.imageIndex = -1
                   root.setValue(fieldItem.modelData.key, text)
