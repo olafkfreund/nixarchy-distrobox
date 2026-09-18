@@ -355,6 +355,20 @@ function clampCursor(cursorIndex, total) {
   return cursorIndex
 }
 
+// Where the cursor belongs after the rows changed: on the same box if it is
+// still listed, otherwise on the same row number, clamped to the new list. The
+// list re-sorts (running boxes first) on every refresh, so a bare index would
+// silently point at a different box after a start or stop.
+function cursorAfter(prevKey, rows, prevIndex) {
+  var next = rows || []
+  if (prevKey) {
+    for (var i = 0; i < next.length; i++) {
+      if (next[i].key === prevKey) return i
+    }
+  }
+  return clampCursor(prevIndex, next.length)
+}
+
 // The smallest list of ListModel operations that turns currentKeys into the
 // keys of nextRows, so rows the cursor is on are moved rather than rebuilt.
 function reconcilePlan(currentKeys, nextRows) {
