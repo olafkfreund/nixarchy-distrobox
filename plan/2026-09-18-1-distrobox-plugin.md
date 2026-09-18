@@ -362,7 +362,14 @@ the same commit.
    `KeyboardPanel` focuses the key catcher on its own schedule after an IPC
    `create`. The catcher now hands focus on to the current mode's target
    whenever it gains focus outside list mode.
-8. **Step 4: no fallback needed.** The menu and all three monitor bars report
+8. **Step 9: two checks beyond podman's.** (a) The flake check also scans
+   the *repository* for symlinks, not only the package. The planted-symlink
+   test showed that a repo symlink never reaches the package (`cp` follows
+   it), so podman's package-only check passes it, yet `omarchy plugin add`
+   clones the repo and would refuse it. (b) It asserts that `qmldir`
+   declares the `DistroboxState` singleton; without that line the lock
+   silently stops being shared.
+9. **Step 4: no fallback needed.** The menu and all three monitor bars report
    the same singleton instance, so the IPC-forwarding fallback was not built.
 
 ### Test results
@@ -421,6 +428,15 @@ the same commit.
   - A start of `t3` from the menu held the lock. `start t2` from the bar's IPC
     was refused ("Busy: starting t3"). Esc closed the menu (`views` 0) while
     the start kept running.
+- **Step 9:**
+  - `nix flake check` passes (55 Node tests run in the sandbox), and so does
+    `nix flake check --all-systems --no-build`.
+  - `nix build` contains exactly the 12 runtime files, with no symlinks.
+  - `omarchy plugin validate` passes on `result` and on a fresh clone without
+    `.git`.
+  - Planted faults, each in a scratch clone: `"#ff0000"` in QML → caught;
+    `// pacman` → caught; a repo symlink → **not caught** until check (a)
+    above was added, then caught.
 
 ### Review fixes
 

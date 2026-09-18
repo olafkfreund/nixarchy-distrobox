@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: "experimental-features = nix-command flakes"
+
+      # The Model tests, the manifest and its entry points, the singleton
+      # declaration, no symlinks, no pacman/yay and no hardcoded colours --
+      # all inside the flake check.
+      - run: nix flake check --print-build-logs
+
+      # aarch64 is evaluated, not built: there is no aarch64 runner here.
+      - run: nix flake check --all-systems --no-build
+
+      - run: nix build .#default --print-build-logs
+
+      # omarchy-plugin-validate refuses any symlink inside the plugin folder.
+      # `result` itself is a symlink, so look inside what it points to.
+      - name: no symlinks in the built plugin
+        run: test -z "$(find "$(readlink -f result)" -mindepth 1 -type l)"
