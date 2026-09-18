@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 4
 intent: intent/2026-09-18-4-form-stale-text.md
 ---
