@@ -215,3 +215,9 @@ deviation updates this file in the same commit.
   distrobox homes, `shell.json` and `omarchy-menu.jsonc` are identical to the
   pre-capture snapshot. DND is back to off, and the workspaces are back to 11
   (DP-2) and 21 (HDMI).
+- **Step 5:** `docs/index.md` carries the seven-part story with the captures.
+  The Jekyll build succeeds, and the link check passes (34 internal links,
+  images, videos and anchors, 0 broken). Local renders of `/` and `/usage/`
+  in headless Chromium match the nixarchy and podman look. The enlarged bar
+  glyph uses `image-rendering: pixelated`, so the browser does not blur a 3×
+  scale.
