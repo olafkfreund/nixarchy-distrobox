@@ -122,7 +122,11 @@ deviation updates this file in the same commit.
 
 ### Deviations
 
-_None yet._
+1. **Step 1: built on the #4 branch, not on `main`.** #4 and #5 wait on live
+   checks that need the owner away from the desktop. This branch is based on
+   `fix/4-form-stale-text` (which has the bound fields #7 needs) and rebases onto
+   `main` once #4 merges, before its own PR. One live session then covers #5,
+   #4, #7 and #8.
 
 ### Test results
 

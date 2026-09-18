@@ -801,7 +801,10 @@ function emptyForm() {
     unshareIpc: false,
     unshareNetns: false,
     unshareProcess: false,
-    noEntry: false
+    noEntry: false,
+    // Which template filled the form, if any. Never reaches argv: it only lets
+    // the Init switch add or remove that template's init packages.
+    template: ""
   }
 }
 
@@ -889,6 +892,7 @@ function formSummary(form) {
 
 var FORM_FIELDS = [
   { key: "name", kind: "text", label: "Name", hint: "Required. Letters, digits, _ . -" },
+  { key: "template", kind: "template", label: "Start from", hint: "↓ picks a distro; fills image, packages and home" },
   { key: "image", kind: "image", label: "Image", hint: "↓ picks from the list, or type a full reference" },
   { key: "pull", kind: "bool", label: "Pull the image even if it is already here" },
   { key: "home", kind: "text", label: "Home directory", hint: "Empty shares your home. e.g. ~/.local/share/distrobox/NAME" },
@@ -941,4 +945,98 @@ function nextClone(current, names) {
   var list = [""].concat(names || [])
   var at = list.indexOf(current || "")
   return list[(at + 1) % list.length]
+}
+
+// ---------------------------------------------------------------- templates
+//
+// A template fills the fields that differ from one distro to the next. The
+// init packages are distrobox's own documented list (1.8.2.5,
+// docs/useful_tips.md, "Using init system inside a distrobox"): the toolbox
+// images ship no systemd, so --init alone fails with "no init found".
+// `tested` is true only once a box from the template has been created,
+// started with Init on, and entered on nixarchy.
+
+var TEMPLATES = [
+  { id: "fedora", label: "Fedora", image: "registry.fedoraproject.org/fedora-toolbox:latest",
+    packages: "", initPackages: "systemd", tested: false },
+  { id: "ubuntu", label: "Ubuntu 24.04", image: "quay.io/toolbx/ubuntu-toolbox:24.04",
+    packages: "", initPackages: "systemd libpam-systemd pipewire-audio-client-libraries", tested: false },
+  { id: "debian", label: "Debian 12", image: "quay.io/toolbx-images/debian-toolbox:12",
+    packages: "", initPackages: "systemd libpam-systemd pipewire-audio-client-libraries", tested: false },
+  { id: "arch", label: "Arch", image: "quay.io/toolbx/arch-toolbox:latest",
+    packages: "", initPackages: "systemd", tested: false }
+]
+
+var BLANK_TEMPLATE = { id: "", label: "Blank", image: "", packages: "", initPackages: "", tested: false }
+
+function templateById(id) {
+  for (var i = 0; i < TEMPLATES.length; i++) {
+    if (TEMPLATES[i].id === id) return TEMPLATES[i]
+  }
+  return null
+}
+
+function templateChoices(query) {
+  var q = trim(query).toLowerCase()
+  var all = [BLANK_TEMPLATE].concat(TEMPLATES)
+  if (!q) return all
+  var out = []
+  for (var i = 0; i < all.length; i++) {
+    if ((all[i].label + " " + all[i].image).toLowerCase().indexOf(q) !== -1) out.push(all[i])
+  }
+  return out
+}
+
+// Space-separated tokens, each once, in first-seen order.
+function joinPackages(a, b) {
+  var out = []
+  var parts = tokens(a).concat(tokens(b))
+  for (var i = 0; i < parts.length; i++) {
+    if (out.indexOf(parts[i]) === -1) out.push(parts[i])
+  }
+  return out.join(" ")
+}
+
+// The form with a template applied: image, packages and home follow the
+// template; the name is the user's and is never touched. Blank puts those
+// three back to the defaults.
+function applyTemplate(form, id) {
+  var next = Object.assign({}, form || emptyForm())
+  var defaults = emptyForm()
+  var t = templateById(id)
+  next.clone = ""
+  if (!t) {
+    next.template = ""
+    next.image = defaults.image
+    next.additionalPackages = defaults.additionalPackages
+    next.home = defaults.home
+    return next
+  }
+  next.template = t.id
+  next.image = t.image
+  next.additionalPackages = joinPackages(t.packages, next.init === true ? t.initPackages : "")
+  next.home = isBoxName(trim(next.name)) ? "~/.local/share/distrobox/" + trim(next.name) : ""
+  return next
+}
+
+// Init on adds the current template's init packages; Init off removes exactly
+// those tokens, and only those, so a package the user typed stays unless it
+// is one of the template's own init packages.
+function setInit(form, on) {
+  var next = Object.assign({}, form || emptyForm())
+  next.init = on === true
+  var t = templateById(next.template)
+  if (!t || !t.initPackages) return next
+  if (next.init) {
+    next.additionalPackages = joinPackages(next.additionalPackages, t.initPackages)
+  } else {
+    var drop = tokens(t.initPackages)
+    var keep = []
+    var have = tokens(next.additionalPackages)
+    for (var i = 0; i < have.length; i++) {
+      if (drop.indexOf(have[i]) === -1) keep.push(have[i])
+    }
+    next.additionalPackages = keep.join(" ")
+  }
+  return next
 }
