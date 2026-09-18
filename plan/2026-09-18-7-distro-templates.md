@@ -130,4 +130,34 @@ deviation updates this file in the same commit.
 
 ### Test results
 
-_Pending._
+- **Steps 2–3:** `node tests/run.js` passes (68 on this branch), and
+  `nix flake check` passes.
+- **Step 4 (live, p620, 2026-09-19; one session with #5, #4 and #8, the owner
+  away, the ownership guard in force):**
+  1. **Pass.** Name, Tab, ↓, pick Ubuntu: the image and home change, and the
+     name is kept.
+  2. **Pass.** Init on adds the three Ubuntu init packages, and Init off
+     removes exactly those.
+  3. **Pass.** Blank resets the fields.
+  4. **Pass.** IPC `create`, then typing, lands in Name, with the Start from
+     row present.
+  5. **Pass.** Typing `deb` filters the list to Debian.
+  6. **Pass for all four.** `demo-tpl-{fedora,ubuntu,debian,arch}` were
+     created through the form with Init on. `podman inspect` shows
+     `--init 1` and each template's packages in `Config.Cmd`. Each was then
+     started and entered with
+     `distrobox enter --name demo-tpl-<id> -T -- ps -p 1 -o comm=`:
+
+     | Template | PID 1 | First start |
+     |---|---|---|
+     | fedora | `systemd` | 31 s |
+     | ubuntu | `systemd` | 86 s |
+     | debian | `systemd` | 29 s |
+     | arch | `systemd` | 23 s |
+
+     So all four are `tested: true` in this commit. The boxes, their homes
+     and the two images pulled for them (debian, arch) were removed at
+     teardown.
+- **Afterwards:** `capture.sh --teardown`. The box list, the distrobox homes,
+  `shell.json`, the menu file and the plugin's Nix link are identical to the
+  snapshot, and the clipboard, DND and workspaces are restored.

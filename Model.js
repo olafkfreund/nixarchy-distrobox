@@ -958,13 +958,13 @@ function nextClone(current, names) {
 
 var TEMPLATES = [
   { id: "fedora", label: "Fedora", image: "registry.fedoraproject.org/fedora-toolbox:latest",
-    packages: "", initPackages: "systemd", tested: false },
+    packages: "", initPackages: "systemd", tested: true },
   { id: "ubuntu", label: "Ubuntu 24.04", image: "quay.io/toolbx/ubuntu-toolbox:24.04",
-    packages: "", initPackages: "systemd libpam-systemd pipewire-audio-client-libraries", tested: false },
+    packages: "", initPackages: "systemd libpam-systemd pipewire-audio-client-libraries", tested: true },
   { id: "debian", label: "Debian 12", image: "quay.io/toolbx-images/debian-toolbox:12",
-    packages: "", initPackages: "systemd libpam-systemd pipewire-audio-client-libraries", tested: false },
+    packages: "", initPackages: "systemd libpam-systemd pipewire-audio-client-libraries", tested: true },
   { id: "arch", label: "Arch", image: "quay.io/toolbx/arch-toolbox:latest",
-    packages: "", initPackages: "systemd", tested: false }
+    packages: "", initPackages: "systemd", tested: true }
 ]
 
 var BLANK_TEMPLATE = { id: "", label: "Blank", image: "", packages: "", initPackages: "", tested: false }
