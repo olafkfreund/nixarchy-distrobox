@@ -126,6 +126,21 @@ this file in the same commit.
    reports `views == 1` *and* the popup layer is up. Opening another bar
    popup closes ours, which stops the keys. Also announce the input session
    on the bus before starting.
+3. **Step 5's stash handling no longer applies.** Another agent
+   (`p620-11c0b1`) deployed `main` to p620 and razer, and moved the pending
+   `nixarchy-voice` lock bump into `git stash` in `~/.config/nixos`, labelled.
+   p620 now runs `main` (voice d8340f9), and the working tree is clean. So step 5
+   becomes:
+   1. Check the tree is clean and on `main`.
+   2. `nix flake update nixarchy-distrobox`, and check that the lock diff touches
+      only that node.
+   3. Commit and push.
+   4. Build-test, then switch p620 and razer.
+
+   **Leave that stash alone:** it belongs to the other agents, and applying it
+   would deploy their change without them. Before switching, compare
+   `/run/current-system` with a build of `main`, so the only difference is the
+   plugin's rev.
 
 ### Test results
 
