@@ -150,6 +150,37 @@ not in this plan.
    or `&&`. That is shell-equivalent to upstream's append-`;`-and-space, but
    not byte-identical.
 
+3. **Step 3: file-level errors are kept but not shown.** `DistroboxState`
+   stores `templateFileErrors` (a file over 64 KB), but the
+   form shows only per-section reasons. The manual says an oversized file lists
+   nothing, and does not promise a message. Showing the file-level line is a
+   follow-up.
+
 ### Test results
 
-_Pending._
+- **Steps 2–3:** `node tests/run.js` passes (84 on this branch), and
+  `nix flake check` passes.
+- **Step 4 (live, p620, 2026-09-19; one session with #5, #4 and #7, the owner
+  away, the ownership guard in force; the popup).** The test file had
+  `demo-file-a` (Fedora, home, `git`), `demo-file-base` (Ubuntu),
+  `demo-file-b` (`include=demo-file-base`, a home, an inline comment) and
+  `demo-file-x` (`exported_apps=firefox`). There was no `boxes.ini` before, so
+  none was backed up.
+  1. **Pass.** Filtering by `file` lists all four under "yours", with
+     `demo-file-x` dimmed and marked "can't use".
+  2. **Pass.** Picking `demo-file-x` shows "demo-file-x: exported_apps runs
+     commands inside the box; not supported yet" and changes no field.
+  3. **Pass.** Picking `demo-file-a` fills Name, the Fedora image,
+     `~/.local/share/distrobox/demo-file-a` and `git`. It was created from
+     the form, and `podman inspect` shows the Fedora toolbox image,
+     `HOME=…/demo-file-a` and `--additional-packages git`.
+  4. **Pass.** `demo-file-b` shows the Ubuntu image from the included
+     `demo-file-base`, with its own home.
+  5. **Pass.** A `[demo-file-c]` section appended to the file appeared in the
+     list on the next open, with no restart.
+- **Step 5:** `usage.md` gets "Your own templates" and a troubleshooting entry
+  for greyed-out templates, and the README settings table gets
+  `templatesFile`. The local Jekyll build succeeds.
+- **Afterwards:** the test file was removed, `capture.sh --teardown` ran, and
+  the box list, homes, `shell.json`, the menu file and the plugin's Nix link
+  are identical to the snapshot.

@@ -146,6 +146,39 @@ A new box is created but not yet set up. Its first start (`s`, or Enter to
 enter it) runs distrobox's setup, which installs its packages and can take a
 few minutes.
 
+### Your own templates
+
+Your own boxes can be templates too. Put them in a `distrobox assemble` file at
+`~/.config/distrobox/boxes.ini` (the **Your templates** setting changes the
+path). Each `[section]` then appears under **Start from**, marked *yours*:
+
+```ini
+[dev-ubuntu]
+image=quay.io/toolbx/ubuntu-toolbox:24.04
+home=~/.local/share/distrobox/dev-ubuntu
+additional_packages="git tmux"
+init=true
+
+[dev-ubuntu-rust]
+include=dev-ubuntu
+additional_packages="rustup"
+```
+
+- The section name becomes the box name. `include` pulls in another section,
+  and keys that can repeat (`volume`, `additional_packages`,
+  `additional_flags`, the hooks) add to what they include.
+- Picking one fills the form. Nothing is created until you press Enter, and
+  every value is checked exactly as if you had typed it.
+- The plugin reads the file itself and never runs `distrobox assemble`,
+  because assemble runs the file's values as shell. The same file still works
+  with `distrobox assemble create --file …` in a terminal.
+- **Refused, with the reason shown:** `exported_apps`, `exported_bins`,
+  `root=true`, `replace=true`, unknown keys, a single-value key set twice,
+  and any value the form would refuse. `start_now` and `name=` are ignored,
+  with a note.
+- Edits to the file show up the next time you open the list. No restart is
+  needed.
+
 ### Enter, start, stop
 
 - **Enter** (or `e`) opens a terminal inside the box and closes the panel.
@@ -172,7 +205,7 @@ is.
 ## Settings
 
 The bar widget's settings are `refreshIntervalSec`, `showStopped`,
-`containerManager` and `hideWhenEmpty`. What each one does is in the
+`containerManager`, `hideWhenEmpty` and `templatesFile`. What each one does is in the
 [README](https://github.com/olafkfreund/nixarchy-distrobox/blob/main/README.md#settings). The menu reads the same settings.
 
 On docker, set **Container engine** to `docker`. The list then comes from
@@ -207,6 +240,12 @@ host shell. The limits are:
 needs an image that ships an init system, and the toolbox images do not.
 Recreate it from a **Start from** template with Init on, which adds the right
 packages for that distro, or choose an image that includes systemd.
+
+**One of your templates is listed but greyed out ("can't use").** Pick it to
+see why. The reason names the key or value the plugin refuses (see
+[Your own templates](#your-own-templates)). Fix that section in the file; the
+list updates when the file is saved. A file larger than 64 KB lists nothing, and
+a section longer than 256 lines once its includes are added is greyed out.
 
 **"Busy: … — press o to watch".** Only one change runs at a time, across the
 popup and the menu. Wait for it to finish, or press `o` to watch it.
