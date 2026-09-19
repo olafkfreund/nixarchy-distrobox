@@ -100,3 +100,31 @@ test("removeMessage says the home directory is kept", () => {
   eq(Model.stopAllMessage(1), "Stop 1 running box?")
   eq(Model.stopAllMessage(3), "Stop 3 running boxes?")
 })
+
+// ---------------------------------------------------------------- promote
+
+const SNIPPET = `programs.nixarchy.services.boxes.machines.t1 = {
+  image = "quay.io/toolbx-images/debian-toolbox:12";
+  # Add whatever else this box needs -- additional_packages, init_hooks,
+  # exported_apps -- see distrobox-assemble's manual. This snippet only
+  # knows what podman recorded for the image; nothing else about how
+  # 't1' was set up by hand is knowable after the fact -- that is the
+  # whole point of promoting it: from here on it is declared instead.
+};`
+
+test("promoteSnippet is what nixarchy box promote prints", () => {
+  eq(Model.promoteSnippet("t1", "quay.io/toolbx-images/debian-toolbox:12"), SNIPPET)
+})
+
+test("a name or image the host would not survive gives null, never a snippet", () => {
+  for (const bad of ["", "a b", '"; x = "', "t1\nx", "$(id)", "a}b", "${x}", "-rf", undefined, null]) {
+    eq(Model.promoteSnippet(bad, "docker.io/library/debian:12"), null)
+    eq(Model.promoteSnippet("t1", bad), null)
+  }
+})
+
+test("copyTextArgv carries any text as one argv element", () => {
+  eq(Model.copyTextArgv(SNIPPET), ["wl-copy", "--trim-newline", SNIPPET])
+  for (const bad of ["", undefined, null, 7, ["x"]]) eq(Model.copyTextArgv(bad), null)
+  eq(Model.copyArgv("t1"), ["wl-copy", "--trim-newline", "t1"])
+})
