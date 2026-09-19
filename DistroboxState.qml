@@ -236,11 +236,18 @@ Singleton {
     return true
   }
 
-  function copyName(name) {
-    var argv = Model.copyArgv(name)
+  function runCopy(argv) {
     if (!argv || copyProcess.running) return
     copyProcess.command = argv
     copyProcess.running = true
+  }
+
+  function copyName(name) {
+    runCopy(Model.copyArgv(name))
+  }
+
+  function copyText(text) {
+    runCopy(Model.copyTextArgv(text))
   }
 
   function statusJson() {
