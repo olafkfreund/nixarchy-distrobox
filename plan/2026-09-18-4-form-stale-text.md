@@ -150,6 +150,10 @@ this file in the same commit.
    input (nixos_config #1898). It does: that agent confirmed it on the bus
    (merge `e494e1154`), so a build from `main` keeps their plugin.
 
+5. **Step 5 went through a PR, not a push.** `main` in nixos_config is
+   protected, so the bump landed as nixos_config #1899 (merged `581eca601`),
+   and both hosts were switched from that merged `main`.
+
 ### Test results
 
 - **Step 1:** `node tests/run.js` passes, including the independent
@@ -174,3 +178,22 @@ this file in the same commit.
 - **Afterwards:** `capture.sh --teardown`. The box list, the distrobox homes,
   `shell.json`, the menu file and the plugin's Nix link are identical to the
   snapshot, and the clipboard, DND and workspaces are restored.
+- **Step 5 (host rollout, 2026-09-19, carrying #4, #5, #7 and #8):**
+  - Announced on the agent bus before starting and before each switch.
+    nixos_config `main` already had #1898, and its tree was clean. The other
+    agents' `stash@{0}` was left untouched.
+  - The lock diff touches only `nixarchy-distrobox`, 7e2a532 → 3dc1081. Both
+    `just test-host` builds pass, and CI on #1899 is green for p510, p620 and
+    razer.
+  - `nix store diff-closures` from each host's running system to the new one
+    shows only `nixarchy-distrobox`, so no other agent's change moved.
+  - **p620:** `just p620` exit 0. The plugin links to
+    `/nix/store/mwxsg42…-nixarchy-distrobox-0.1.0`, and there are 0 failed
+    units. After one shell restart, an IPC `create` opens the form with empty
+    fields, the Start from row, and focus in Name. No plugin errors in
+    `qs log`.
+  - **razer:** the NVIDIA module and userspace are both 610.57.04. The
+    via-p620 rollout exits 0, with the same store link and 0 failed units.
+    `status` answers with razer's own boxes. Its running shell was not
+    restarted, because nobody was at razer; it loads the new code on its next
+    shell start.
