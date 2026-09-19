@@ -40,6 +40,7 @@ var SHORTCUTS = [
   { group: "Box", keys: "g", text: "Upgrade its packages, with the log in the panel" },
   { group: "Box", keys: "x", text: "Delete it (its home directory is kept)" },
   { group: "Box", keys: "y", text: "Copy its name" },
+  { group: "Box", keys: "p", text: "Copy a Nix snippet that declares it in nixarchy" },
 
   { group: "All boxes", keys: "c", text: "Create a new box" },
   { group: "All boxes", keys: "U", text: "Upgrade every box" },
