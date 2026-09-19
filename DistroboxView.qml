@@ -26,8 +26,15 @@ FocusScope {
 
   // ------------------------------------------------------------------ state
 
-  // list | form | log. The form and the log own the keyboard while open.
+  // list | form | log | snippet. Everything but the list owns the keyboard
+  // while open.
   property string mode: "list"
+
+  // The promote snippet on screen, kept here rather than in the singleton:
+  // it is one row's text, not shared state, and it must never disturb the
+  // stream a create or upgrade is writing.
+  property var snippetLines: []
+  property string snippetName: ""
 
   property string filterText: ""
 
@@ -86,6 +93,7 @@ FocusScope {
   // lands straight in the form (IPC create) keeps the form's focus.
   function focusForMode() {
     if (root.mode === "log") logView.forceActiveFocus()
+    else if (root.mode === "snippet") snippetView.forceActiveFocus()
     else if (root.mode === "form") createForm.focusCurrent()
     else keyCatcher.forceActiveFocus()
   }
@@ -120,6 +128,18 @@ FocusScope {
     if (DistroboxState.upgrade(name)) setMode("log")
   }
 
+  // p: the snippet that declares this box in a nixarchy flake, on the
+  // clipboard and on screen. Read-only, so it ignores the mutation lock and
+  // leaves the stream alone.
+  function promote(box) {
+    var snippet = Model.promoteSnippet(box.name, box.image)
+    if (!snippet) return
+    DistroboxState.copyText(snippet)
+    root.snippetName = box.name
+    root.snippetLines = snippet.split("\n")
+    setMode("snippet")
+  }
+
   // Called when the surface closes.
   function dismiss() {
     helpOpen = false
@@ -139,6 +159,7 @@ FocusScope {
     }
     if (verb === "remove") { askRemove(box); return }
     if (verb === "copy") { DistroboxState.copyName(name); return }
+    if (verb === "promote") { promote(box); return }
     if (verb === "upgrade") { upgrade(name); return }
     if (!Model.allowsVerb(Model.rowsFor([box])[0], verb, root.lock)) {
       if (DistroboxState.mutating) DistroboxState.lastError = DistroboxState.busyText()
@@ -236,6 +257,7 @@ FocusScope {
     else if (key === "s") toggleAtCursor()
     else if (key === "r") { if (cursorBox.up) dispatch(cursorBox.name, "restart") }
     else if (key === "y") dispatch(cursorBox.name, "copy")
+    else if (key === "p") dispatch(cursorBox.name, "promote")
     else if (key === "g") upgrade(cursorBox.name)
   }
 
@@ -361,6 +383,24 @@ FocusScope {
           title: DistroboxState.streamTitle
           running: DistroboxState.streaming
           exitCode: DistroboxState.streamExit
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          onBackRequested: root.setMode("list")
+        }
+
+        // A second instance, not new bindings on the one above: that one
+        // belongs to the create / upgrade stream, and a promote must never
+        // disturb a job in flight. exitCode -1 leaves the header's status
+        // word blank, since nothing ran.
+        LogView {
+          id: snippetView
+          visible: root.mode === "snippet"
+          width: parent.width
+          height: visible ? implicitHeight : 0
+          lines: root.snippetLines
+          title: "copied the snippet for " + root.snippetName
+          running: false
+          exitCode: -1
           foreground: root.foreground
           fontFamily: root.fontFamily
           onBackRequested: root.setMode("list")
