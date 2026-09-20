@@ -55,6 +55,11 @@ Singleton {
   readonly property var boxes: Model.normalizeBoxes(rawBoxes, homes, hostHome)
   readonly property var counts: Model.counts(boxes)
 
+  // The last promote's snippet, shown in the view and already on the
+  // clipboard. Cleared by the next one, or by an engine that said nothing.
+  property string promoteSnippet: ""
+  property string promoteName: ""
+
   property bool reachable: true
   property bool loading: false
   property bool everLoaded: false
@@ -236,6 +241,21 @@ Singleton {
     return true
   }
 
+  // Promote reads the image the way the CLI does -- once, here, not from the
+  // row: `ps` and `inspect` can spell an image differently, and the snippet
+  // has to say what `nixarchy box promote` would say. It writes no file and
+  // never touches the poll or the mutation lock: nothing about the box
+  // changes, so nothing has to wait.
+  function promote(name) {
+    if (!known(name) || promoteProcess.running) return
+    var argv = Model.promoteImageArgv(root.engine, name)
+    if (!argv) return
+    root.promoteSnippet = ""
+    root.promoteName = name
+    promoteProcess.command = argv
+    promoteProcess.running = true
+  }
+
   function copyName(name) {
     var argv = Model.copyArgv(name)
     if (!argv || copyProcess.running) return
@@ -339,6 +359,27 @@ Singleton {
   }
 
   Process { id: copyProcess }
+
+  Process {
+    id: promoteProcess
+    stdout: StdioCollector { id: promoteOut; waitForEnd: true }
+    onExited: function(code) {
+      var image = String(promoteOut.text || "").trim()
+      if (!image) {
+        // The engine is down, or the box went away between list and keypress.
+        // An `image = ""` snippet would be worse than none.
+        root.promoteSnippet = ""
+        root.lastError = "can't read " + root.promoteName + "'s image: " + root.engine + " inspect found nothing"
+        return
+      }
+      root.promoteSnippet = Model.promoteSnippet(root.promoteName, image)
+      var argv = Model.promoteCopyArgv(root.promoteName, image)
+      if (argv && !copyProcess.running) {
+        copyProcess.command = argv
+        copyProcess.running = true
+      }
+    }
+  }
 
   // The user's own templates (#8). Read and parsed here, never handed to
   // distrobox; a missing file is simply no templates.

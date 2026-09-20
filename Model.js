@@ -40,6 +40,7 @@ var SHORTCUTS = [
   { group: "Box", keys: "g", text: "Upgrade its packages, with the log in the panel" },
   { group: "Box", keys: "x", text: "Delete it (its home directory is kept)" },
   { group: "Box", keys: "y", text: "Copy its name" },
+  { group: "Box", keys: "p", text: "Promote to a declared machine (copies the snippet)" },
 
   { group: "All boxes", keys: "c", text: "Create a new box" },
   { group: "All boxes", keys: "U", text: "Upgrade every box" },
@@ -575,6 +576,43 @@ function upgradeArgv(engine, name) {
 function copyArgv(name) {
   if (!isBoxName(name)) return null
   return ["wl-copy", "--trim-newline", name]
+}
+
+// ---------------------------------------------------------------- promote
+//
+// What `nixarchy box promote <name>` prints, byte for byte: nixarchy's own
+// wording, so a box promoted from here and one promoted from the terminal
+// declare the same thing. tests/model/fixtures/promote.txt is that command's
+// real output, and the test holds this against it.
+//
+// The name is not quoted, because the CLI does not quote it. A box name with
+// a dot in it is therefore an invalid Nix attribute path in both -- accepted
+// deliberately (spec), since identical output is the point, and the panel
+// says so beside the snippet.
+function promoteSnippet(name, image) {
+  return "programs.nixarchy.services.boxes.machines." + name + " = {\n"
+    + '  image = "' + image + '";\n'
+    + "  # Add whatever else this box needs -- additional_packages, init_hooks,\n"
+    + "  # exported_apps -- see distrobox-assemble's manual. This snippet only\n"
+    + "  # knows what podman recorded for the image; nothing else about how\n"
+    + "  # '" + name + "' was set up by hand is knowable after the fact -- that is the\n"
+    + "  # whole point of promoting it: from here on it is declared instead.\n"
+    + "};\n"
+}
+
+// The image from the same call the CLI makes, through the engine the panel
+// already uses. Once per keypress: `ps` and `inspect` can spell an image
+// differently, and the snippet must say what the CLI would say.
+function promoteImageArgv(engine, name) {
+  if (!isBoxName(name)) return null
+  return [engineFor(engine), "inspect", "--type", "container", "--format", "{{.Config.Image}}", name]
+}
+
+// Not copyArgv: its isBoxName guard rejects a snippet, and --trim-newline
+// would eat the final newline the CLI prints.
+function promoteCopyArgv(name, image) {
+  if (!isBoxName(name) || !image) return null
+  return ["wl-copy", promoteSnippet(name, image)]
 }
 
 // ---------------------------------------------------------------- row actions
