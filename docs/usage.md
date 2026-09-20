@@ -25,7 +25,7 @@ one exception is entering a box, which opens a terminal by design.
   the list from this engine, and runs every distrobox command with
   `DBX_CONTAINER_MANAGER` set to it.
 - **`omarchy-launch-tui`** opens the terminal for Enter. **`wl-copy`** copies
-  names. Omarchy ships both.
+  names and snippets. Omarchy ships both.
 
 A command that is missing fails silently inside the shell, so check these first
 when nothing happens.
@@ -195,6 +195,28 @@ and follows the package manager's output:
   says so;
 - press `o` at any time to see the log again;
 - `j` and `k` scroll it, and `G` jumps back to the end.
+
+### Keep a box you made by hand
+
+`p` copies a Nix snippet for the box under the cursor and shows it:
+
+```nix
+programs.nixarchy.services.boxes.machines.work = {
+  image = "quay.io/toolbx-images/debian-toolbox:12";
+  # Add whatever else this box needs -- additional_packages, init_hooks,
+  # exported_apps -- see distrobox-assemble's manual. …
+};
+```
+
+Paste it into your nixarchy flake and the box is declared: a rebuild makes it
+again on any machine. It is the same snippet `nixarchy box promote` prints.
+
+The plugin edits nothing — not your flake, not the box. Until you paste it and
+rebuild, the box carries on exactly as before, and the image in the snippet is
+the one the engine reports today, so check it if you have retagged since.
+
+Esc goes back to the list. `p` works while a create or upgrade is running, and
+leaves that log alone.
 
 ### Delete
 
