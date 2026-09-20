@@ -59,6 +59,7 @@ The same list is on the `?` sheet inside the panel (`Model.SHORTCUTS`).
 | `g` | Upgrade its packages, with the log in the panel |
 | `x` | Delete it (its home directory is kept) |
 | `y` | Copy its name |
+| `p` | Copy a nixarchy snippet that declares it (promote) |
 | `c` | Create a new box |
 | `U` | Upgrade every box |
 | `S` | Stop every running box |

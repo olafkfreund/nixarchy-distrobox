@@ -202,6 +202,32 @@ and follows the package manager's output:
 container but keeps its home directory; the question says which directory that
 is.
 
+### Promote a box to your configuration
+
+A box you made by hand lives only on this machine. `p` — or the copy button on
+the row — asks the engine what image the box runs and puts a snippet on your
+clipboard:
+
+```nix
+programs.nixarchy.services.boxes.machines.demo = {
+  image = "docker.io/library/ubuntu:24.04";
+  # ...
+};
+```
+
+It is byte for byte what `nixarchy box promote demo` prints, and the panel
+shows it so you can read it before you paste. **Nothing is written**: no file
+of yours is touched, and the box is not changed. Paste it into your nixarchy
+configuration and rebuild, and from then on that box is declared rather than
+remembered.
+
+The snippet can only say what the engine recorded — the image. Packages, hooks
+and exported apps the box was set up with by hand are not knowable after the
+fact, so add them yourself; the comment in the snippet says so too.
+
+One limitation: a box whose name contains a dot produces a snippet Nix reads as
+nested attributes. Rename the box, or quote the name by hand after pasting.
+
 ## Settings
 
 The bar widget's settings are `refreshIntervalSec`, `showStopped`,
