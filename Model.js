@@ -634,6 +634,8 @@ function actionsFor(row, lock) {
     out.push(action("start", Glyph.play, "Start  (s)", false, free))
   }
   out.push(action("upgrade", Glyph.upgrade, "Upgrade packages  (g)", false, free))
+  // Enabled even while something mutates: it reads the image and copies text.
+  out.push(action("promote", Glyph.copy, "Promote to a declared machine  (p)", false, true))
   out.push(action("remove", Glyph.remove, "Delete  (x)", true, free))
   return out
 }

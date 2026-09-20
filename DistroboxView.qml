@@ -139,6 +139,8 @@ FocusScope {
     }
     if (verb === "remove") { askRemove(box); return }
     if (verb === "copy") { DistroboxState.copyName(name); return }
+    // Not gated by the mutation lock: it reads the image and copies text.
+    if (verb === "promote") { DistroboxState.promote(name); return }
     if (verb === "upgrade") { upgrade(name); return }
     if (!Model.allowsVerb(Model.rowsFor([box])[0], verb, root.lock)) {
       if (DistroboxState.mutating) DistroboxState.lastError = DistroboxState.busyText()
@@ -236,6 +238,7 @@ FocusScope {
     else if (key === "s") toggleAtCursor()
     else if (key === "r") { if (cursorBox.up) dispatch(cursorBox.name, "restart") }
     else if (key === "y") dispatch(cursorBox.name, "copy")
+    else if (key === "p") dispatch(cursorBox.name, "promote")
     else if (key === "g") upgrade(cursorBox.name)
   }
 
@@ -506,6 +509,66 @@ FocusScope {
             fontSize: Style.font.iconSmall
             size: Style.space(20)
             onClicked: DistroboxState.lastError = ""
+          }
+        }
+
+        // What p copied, kept on screen so it can be read and selected: the
+        // clipboard already has it, but a snippet nobody can see is a snippet
+        // nobody trusts.
+        Column {
+          width: parent.width
+          visible: DistroboxState.promoteSnippet !== "" && root.mode === "list"
+          spacing: Style.spacing.xs
+
+          Row {
+            width: parent.width
+            spacing: Style.spacing.md
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: Model.Glyph.copy
+              textFormat: Text.PlainText
+              color: Color.accent
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.iconSmall
+            }
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              width: parent.width - Style.space(60)
+              text: "Copied. Paste into this host's nixarchy configuration; a rebuild then owns the box."
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              wrapMode: Text.WordWrap
+            }
+
+            PanelActionButton {
+              anchors.verticalCenter: parent.verticalCenter
+              iconText: Model.Glyph.close
+              tooltipText: "Dismiss"
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+              fontSize: Style.font.iconSmall
+              size: Style.space(20)
+              onClicked: DistroboxState.promoteSnippet = ""
+            }
+          }
+
+          TextEdit {
+            width: parent.width
+            text: DistroboxState.promoteSnippet
+            textFormat: TextEdit.PlainText
+            readOnly: true
+            selectByMouse: true
+            wrapMode: TextEdit.WrapAnywhere
+            color: root.foreground
+            selectionColor: Color.accent
+            // No mono token in the shell's Style, and this has to line up the
+            // way the file it goes into does.
+            font.family: "monospace"
+            font.pixelSize: Style.font.caption
           }
         }
 

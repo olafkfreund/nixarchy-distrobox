@@ -82,14 +82,27 @@ test("list and inspect argv", () => {
 test("actionsFor offers start or stop by state and locks mutations", () => {
   const up = Model.rowsFor([box({ State: "running" })])[0]
   const down = Model.rowsFor([box({ State: "exited", Status: "Exited (0) now" })])[0]
-  eq(Model.actionsFor(up, {}).map(a => a.verb), ["enter", "restart", "stop", "upgrade", "remove"])
-  eq(Model.actionsFor(down, {}).map(a => a.verb), ["enter", "start", "upgrade", "remove"])
+  eq(Model.actionsFor(up, {}).map(a => a.verb), ["enter", "restart", "stop", "upgrade", "promote", "remove"])
+  eq(Model.actionsFor(down, {}).map(a => a.verb), ["enter", "start", "upgrade", "promote", "remove"])
   const locked = Model.actionsFor(down, { mutating: true })
-  eq(locked.filter(a => a.enabled).map(a => a.verb), ["enter"])
+  // Promote joins enter: it reads the image and copies text, so a job holding
+  // the mutation lock has nothing to do with it.
+  eq(locked.filter(a => a.enabled).map(a => a.verb), ["enter", "promote"])
   ok(Model.allowsVerb(down, "start", {}))
   ok(!Model.allowsVerb(down, "start", { mutating: true }))
   ok(!Model.allowsVerb(down, "stop", {}))
   eq(Model.actionsFor(null, {}), [])
+})
+
+test("every row action's tooltip names the key that does the same thing", () => {
+  const box = Model.SHORTCUTS.filter(s => s.group === "Box")
+  const row = Model.rowsFor([{ Name: "demo", Image: "i", Status: "Up", State: "running" }])[0]
+  for (const a of Model.actionsFor(row, {})) {
+    const key = /\(([^)]+)\)\s*$/.exec(a.tooltip)
+    ok(key, a.verb + "'s tooltip does not end in a key")
+    ok(box.some(s => s.keys.split(/\s+/).indexOf(key[1]) !== -1),
+      a.verb + " offers " + key[1] + ", which the Box shortcuts do not bind")
+  }
 })
 
 test("removeMessage says the home directory is kept", () => {
