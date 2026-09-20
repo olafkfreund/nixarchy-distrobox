@@ -100,3 +100,45 @@ test("removeMessage says the home directory is kept", () => {
   eq(Model.stopAllMessage(1), "Stop 1 running box?")
   eq(Model.stopAllMessage(3), "Stop 3 running boxes?")
 })
+
+// ---------------------------------------------------------------- promote
+//
+// The snippet has to be what `nixarchy box promote` prints, byte for byte:
+// the fixture is that command's real output (see plan/2026-09-19-14-promote-box.md
+// for how it was captured). Its first line records the nixarchy commit and is
+// not part of the snippet.
+const fs = require("fs")
+const path = require("path")
+const fixture = fs.readFileSync(path.join(__dirname, "fixtures", "promote.txt"), "utf8")
+  .split("\n").slice(1).join("\n")
+
+test("promoteSnippet is the CLI's output, byte for byte", () => {
+  eq(Model.promoteSnippet("demo", "docker.io/library/ubuntu:24.04"), fixture)
+})
+
+test("promoteImageArgv reads the image the way the CLI does, through the chosen engine", () => {
+  eq(Model.promoteImageArgv("podman", "demo"),
+    ["podman", "inspect", "--type", "container", "--format", "{{.Config.Image}}", "demo"])
+  eq(Model.promoteImageArgv("docker", "demo")[0], "docker")
+  for (const bad of ["", "a b", "$(id)", "-rf", undefined]) eq(Model.promoteImageArgv("podman", bad), null)
+})
+
+test("promoteCopyArgv copies the whole snippet, and refuses when there is nothing to copy", () => {
+  const argv = Model.promoteCopyArgv("demo", "docker.io/library/ubuntu:24.04")
+  eq(argv, ["wl-copy", fixture])
+  // Not copyArgv: --trim-newline would drop the snippet's last newline.
+  ok(argv.indexOf("--trim-newline") === -1)
+  eq(Model.promoteCopyArgv("demo", ""), null)
+  eq(Model.promoteCopyArgv("a b", "docker.io/library/ubuntu:24.04"), null)
+})
+
+test("p promotes, and no box key is bound twice", () => {
+  // Only the Box group: Move deliberately lists k and the arrows twice, once
+  // for moving and once for stepping back into the filter.
+  const keys = []
+  for (const s of Model.SHORTCUTS.filter(s => s.group === "Box")) {
+    for (const key of s.keys.split(/\s+/).filter(Boolean)) keys.push(key)
+  }
+  ok(keys.indexOf("p") !== -1)
+  eq(keys.length, new Set(keys).size)
+})

@@ -1,0 +1,9 @@
+# nixarchy box promote demo, captured 2026-09-20 from nixarchy 125842d91346976c15fea5bd8c2aaecbdc4d5196 (the command is in plan/2026-09-19-14-promote-box.md). The test drops this first line.
+programs.nixarchy.services.boxes.machines.demo = {
+  image = "docker.io/library/ubuntu:24.04";
+  # Add whatever else this box needs -- additional_packages, init_hooks,
+  # exported_apps -- see distrobox-assemble's manual. This snippet only
+  # knows what podman recorded for the image; nothing else about how
+  # 'demo' was set up by hand is knowable after the fact -- that is the
+  # whole point of promoting it: from here on it is declared instead.
+};
