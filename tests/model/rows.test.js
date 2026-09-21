@@ -8,6 +8,10 @@ test("sortBoxes puts running first, then failing, then by name", () => {
   eq(Model.boxNames(got), ["m", "z", "a", "b", "c"])
 })
 
+test("sortBoxes orders names case-insensitively", () => {
+  eq(Model.boxNames(Model.sortBoxes([stopped("demo-u"), stopped("Fedora"), stopped("Debian")])), ["Debian", "demo-u", "Fedora"])
+})
+
 test("filterBoxes matches name or image, case-insensitively", () => {
   const arch = box({ Names: "arch", ID: "arch0", State: "exited", Status: "Exited (0) 1 day ago", Image: "quay.io/toolbx/arch-toolbox:latest" })
   const list = [running("fedora"), arch]

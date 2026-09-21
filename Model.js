@@ -284,6 +284,10 @@ function boxByName(boxes, name) {
 function compareBoxes(a, b) {
   if (a.up !== b.up) return a.up ? -1 : 1
   if (a.failing !== b.failing) return a.failing ? -1 : 1
+  // Case-insensitive, so "demo-x" sits between "Debian" and "Fedora"; the
+  // exact name breaks ties so the order is stable.
+  var al = a.name.toLowerCase(), bl = b.name.toLowerCase()
+  if (al !== bl) return al < bl ? -1 : 1
   return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
 }
 
