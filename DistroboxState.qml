@@ -109,7 +109,10 @@ Singleton {
     onTriggered: root.refresh()
   }
 
-  onActiveChanged: if (active) refresh()
+  // Opening a surface also re-reads the templates file: FileView cannot watch
+  // a file (or a directory) that did not exist yet, so a boxes.ini made after
+  // the shell started would otherwise never load.
+  onActiveChanged: if (active) { refresh(); templatesFile.reload() }
 
   // The list came from the old engine: forget it and its homes.
   onEngineChanged: {
@@ -398,6 +401,7 @@ Singleton {
   property var templateFileErrors: []
 
   FileView {
+    id: templatesFile
     path: root.templatesPath
     watchChanges: true
     blockLoading: false
