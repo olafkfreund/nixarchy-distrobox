@@ -12,16 +12,7 @@ behind a key, and a new one is a form away.
     <source src="img/rec-tour.webm" type="video/webm">
     <source src="img/rec-tour.mp4" type="video/mp4">
   </video>
-  <figcaption>The whole thing in 90 seconds, all from the keyboard:
-  <ul>
-    <li>moving and filtering, and the <kbd>?</kbd> sheet;</li>
-    <li>promoting a box with <kbd>p</kbd>;</li>
-    <li>creating one from a template, then its first start;</li>
-    <li>an upgrade;</li>
-    <li>the delete and stop-all questions, both answered Cancel;</li>
-    <li>the same state in the bar popup.</li>
-  </ul>
-  The first start really takes about 50 seconds while distrobox sets the box up; that stretch is shown 8&times; faster.</figcaption>
+  <figcaption>The whole thing in 90 seconds, all from the keyboard. It moves, filters and opens the <kbd>?</kbd> sheet, promotes a box with <kbd>p</kbd>, creates one from a template and starts it, runs an upgrade, answers Cancel to the delete and stop-all questions, and ends in the bar popup. The first start really takes about 50 seconds while distrobox sets the box up; that stretch is shown 8&times; faster.</figcaption>
 </figure>
 
 ## Who it is for
@@ -69,14 +60,7 @@ accent colour when something does, and red when a box has failed.
 
 <figure class="shot">
   <img src="img/popup.png" alt="The bar popup listing five boxes" loading="lazy">
-  <figcaption>The popup under the glyph:
-  <ul>
-    <li>a running box;</li>
-    <li>one that failed, from a real <code>--init</code> on an image without systemd;</li>
-    <li>one that has never been started;</li>
-    <li>two of the machine's own stopped boxes.</li>
-  </ul>
-  Names sort without regard to case.</figcaption>
+  <figcaption>The popup under the glyph. One box runs. One failed, from a real <code>--init</code> on an image without systemd, and one has never been started. The last two are the machine's own stopped boxes. Names sort without regard to case.</figcaption>
 </figure>
 
 **A form knows every `distrobox create` flag.**
