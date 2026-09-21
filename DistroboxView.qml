@@ -226,9 +226,10 @@ FocusScope {
       filterField.forceActiveFocus()
       return
     }
+    var next = Model.stepCursor(cursorActive, cursorIndex, delta, rows.length)
     cursorActive = true
     cursorFromKeyboard = true
-    rememberCursor(cursorIndex + delta)
+    rememberCursor(next)
   }
 
   // Hover names the box, not a row: while the list reconciles, a row number can

@@ -380,6 +380,14 @@ function clampCursor(cursorIndex, total) {
   return cursorIndex
 }
 
+// One j/k step. An inactive cursor (just opened, or back from the filter)
+// lands on the row it already points at instead of moving past it, so the
+// first j highlights the first row.
+function stepCursor(active, index, delta, total) {
+  if (total <= 0) return 0
+  return clampCursor(active ? index + delta : index, total)
+}
+
 // Where the cursor belongs after the rows changed: on the same box if it is
 // still listed, otherwise on the same row number, clamped to the new list. The
 // list re-sorts (running boxes first) on every refresh, so a bare index would

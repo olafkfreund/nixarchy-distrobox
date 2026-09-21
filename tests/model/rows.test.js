@@ -123,3 +123,12 @@ test("cursorAfter: after its box is gone, the fallback row's box is followed", (
   const remembered = rows("a", "c", "d")[at].key                // "c"
   eq(Model.cursorAfter(remembered, rows("c", "a", "d"), at), 0)
 })
+
+test("stepCursor: the first step from an inactive cursor lands on its row", () => {
+  eq(Model.stepCursor(false, 0, 1, 5), 0)
+  eq(Model.stepCursor(false, 0, -1, 5), 0)
+  eq(Model.stepCursor(true, 0, 1, 5), 1)
+  eq(Model.stepCursor(true, 4, 1, 5), 4)
+  eq(Model.stepCursor(true, 2, -1, 5), 1)
+  eq(Model.stepCursor(true, 3, 1, 0), 0)
+})
