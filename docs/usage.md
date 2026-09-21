@@ -164,6 +164,8 @@ include=dev-ubuntu
 additional_packages="rustup"
 ```
 
+![The Start from list: the built-in templates, then dev-ubuntu and dev-ubuntu-rust marked yours, and dev-root greyed out](https://olafkfreund.github.io/nixarchy-distrobox/img/templates.png)
+
 - The section name becomes the box name. `include` pulls in another section,
   and keys that can repeat (`volume`, `additional_packages`,
   `additional_flags`, the hooks) add to what they include.
@@ -211,6 +213,8 @@ programs.nixarchy.services.boxes.machines.work = {
   # exported_apps -- see distrobox-assemble's manual. …
 };
 ```
+
+![The promote snippet for demo-fedora, shown in the panel after p](https://olafkfreund.github.io/nixarchy-distrobox/img/promote.png)
 
 Paste it into your nixarchy flake and the box is declared: a rebuild makes it
 again on any machine. A name that is not a plain Nix identifier, such as
