@@ -69,7 +69,7 @@ Singleton {
   property string pendingVerb: ""
   // Follow-up commands of a multi-step action (restart = stop, then start).
   property var queue: []
-  readonly property bool mutating: actionProcess.running || streamProcess.running || queue.length > 0
+  readonly property bool mutating: actionProcess.running || streaming || queue.length > 0
 
   // --------------------------------------------------------------- stream
 
@@ -77,7 +77,12 @@ Singleton {
   property string streamTitle: ""
   property string streamName: ""
   property int streamExit: -1
-  readonly property bool streaming: streamProcess.running
+  // Upgrade-all: the boxes still to go ({name, argv}) and how each one ended.
+  // The queue counts as streaming, so the lock holds between two boxes.
+  property var streamQueue: []
+  property var streamResults: []
+  property bool streamAll: false
+  readonly property bool streaming: streamProcess.running || streamQueue.length > 0
 
   // -------------------------------------------------------------- refresh
 
@@ -85,7 +90,7 @@ Singleton {
     if (listProcess.running) return
     root.loading = true
     root.polls += 1
-    listProcess.command = Model.listArgv(root.engine, root.showStopped)
+    listProcess.command = Model.listArgv(root.engine)
     listProcess.running = true
   }
 
@@ -104,7 +109,10 @@ Singleton {
     onTriggered: root.refresh()
   }
 
-  onActiveChanged: if (active) refresh()
+  // Opening a surface also re-reads the templates file: FileView cannot watch
+  // a file (or a directory) that did not exist yet, so a boxes.ini made after
+  // the shell started would otherwise never load.
+  onActiveChanged: if (active) { refresh(); templatesFile.reload() }
 
   // The list came from the old engine: forget it and its homes.
   onEngineChanged: {
@@ -113,8 +121,6 @@ Singleton {
     root.homesKey = ""
     if (root.active || root.background) root.refresh()
   }
-
-  onShowStoppedChanged: if (root.active || root.background) root.refresh()
 
   // Homes are one inspect per change of the set of boxes, never per poll.
   function refreshHomes(names) {
@@ -136,7 +142,7 @@ Singleton {
   }
 
   function busyText() {
-    if (streamProcess.running) return "Busy: " + root.streamTitle + " — press o to watch"
+    if (root.streaming) return "Busy: " + root.streamTitle + " — press o to watch"
     return "Busy: " + root.pendingVerb + (root.pendingName ? " " + root.pendingName : "") + " — wait for it to finish"
   }
 
@@ -208,13 +214,50 @@ Singleton {
   }
 
   function upgrade(name) {
-    if (name && !known(name)) return false
-    return startStream(Model.upgradeArgv(root.engine, name), name ? "upgrade " + name : "upgrade all boxes", name)
+    if (name) return known(name) && startStream(Model.upgradeArgv(root.engine, name), "upgrade " + name, name)
+    var names = Model.boxNames(root.boxes)
+    var argvs = Model.upgradeAllArgvs(root.engine, names)
+    if (!argvs || !startStream(argvs[0], "upgrade all boxes", names[0])) return false
+    root.streamAll = true
+    root.streamResults = []
+    var rest = []
+    for (var i = 1; i < names.length; i++) rest.push({ name: names[i], argv: argvs[i] })
+    root.streamQueue = rest
+    root.appendLog("── " + names[0])
+    return true
   }
 
   function create(form) {
     var argv = Model.createArgv(form, root.engine, root.boxes, root.hostHome)
     return startStream(argv, Model.formSummary(form), form ? String(form.name) : "")
+  }
+
+  // One box of an upgrade-all ended: log it, then start the next on the next
+  // tick (taken off the queue in the same step, so the lock never drops), or
+  // finish with the summary. A box that fails does not stop the rest.
+  function upgradeAllStep(code) {
+    var results = root.streamResults.slice()
+    results.push({ name: root.streamName, code: code })
+    root.streamResults = results
+    root.appendLog("── " + root.streamName + ": exit " + code)
+    if (root.streamQueue.length > 0) {
+      Qt.callLater(function() {
+        var next = root.streamQueue[0]
+        root.streamName = next.name
+        root.appendLog("── " + next.name)
+        root.launch(streamProcess, next.argv)
+        root.streamQueue = root.streamQueue.slice(1)
+      })
+      return
+    }
+    var summary = Model.upgradeSummary(results)
+    root.streamAll = false
+    root.clearBusyNotice()
+    root.streamExit = summary.failed.length > 0 ? 1 : 0
+    root.appendLog(summary.text)
+    if (summary.failed.length > 0)
+      root.lastError = "upgrade failed for " + summary.failed.join(", ") + " — o shows the log"
+    if (root.active || root.background) root.refresh()
   }
 
   function appendLog(line) {
@@ -335,11 +378,16 @@ Singleton {
     stderr: SplitParser { onRead: function(line) { root.appendLog(line) } }
 
     onExited: function(code) {
+      if (root.streamAll) { root.upgradeAllStep(code); return }
       root.clearBusyNotice()
-      root.streamExit = code
-      root.appendLog("── exit " + code + " · " + (code === 0 ? "done" : "failed"))
-      if (code !== 0) root.lastError = root.streamTitle + " failed (exit " + code + ") — o shows the log"
-      else if (root.streamTitle.indexOf("create ") === 0)
+      var creating = root.streamTitle.indexOf("create ") === 0
+      var refusal = creating && code === 0 ? Model.createRefusal(root.log) : ""
+      var failed = code !== 0 || refusal !== ""
+      root.streamExit = failed && code === 0 ? 1 : code
+      root.appendLog("── exit " + code + " · " + (failed ? "failed" : "done"))
+      if (refusal) root.lastError = refusal
+      else if (code !== 0) root.lastError = root.streamTitle + " failed (exit " + code + ") — o shows the log"
+      else if (creating)
         root.appendLog("The box is created. Its first start (s, or enter) finishes setting it up.")
       if (root.active || root.background) root.refresh()
     }
@@ -353,6 +401,7 @@ Singleton {
   property var templateFileErrors: []
 
   FileView {
+    id: templatesFile
     path: root.templatesPath
     watchChanges: true
     blockLoading: false

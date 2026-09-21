@@ -7,6 +7,10 @@ form that knows every `distrobox create` flag. Create and upgrade stream their
 output into the panel, so a multi-minute image pull or package upgrade doesn't
 tie up a terminal.
 
+[![A 90-second tour of nixarchy.distrobox: the menu, a create from a template, a first start, an upgrade and the bar popup. Click to watch it on the site.](docs/img/tour.png)](https://olafkfreund.github.io/nixarchy-distrobox/)
+
+*The tour plays on [the site](https://olafkfreund.github.io/nixarchy-distrobox/).*
+
 The whole thing runs from the keyboard and follows your Omarchy theme. It comes
 in two forms:
 
@@ -37,8 +41,14 @@ screenshots and recordings. The walkthrough, from install to troubleshooting, is
   clone, volumes, engine flags, init and pre-init hooks, platform, the six
   `--unshare-*` switches and `--no-entry`. Bad input is flagged inline before
   anything runs.
+- **Starts from a template.** Tested Fedora, Ubuntu, Debian and Arch
+  templates, and your own from a `distrobox assemble` file
+  (`~/.config/distrobox/boxes.ini`), which the plugin reads but never runs.
 - **Streams create and upgrade** into a log in the panel. Esc hides the log
-  and the job keeps running; `o` brings it back.
+  and the job keeps running; `o` brings it back. `U` upgrades every box one at
+  a time, and a box that fails does not stop the rest.
+- **Keeps a box you made by hand.** `p` copies a Nix snippet that declares it
+  in your nixarchy flake.
 - **One change at a time.** While a start, stop, delete, create or upgrade
   runs, every other change is refused with a reason, from either surface.
 
@@ -142,7 +152,7 @@ Set these in the bar widget's settings (Super+Alt+B), or inline on its entry in
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `refreshIntervalSec` | `30` | How often the bar glyph polls. An open panel polls every 3 s regardless. Nothing polls while every surface is closed and no bar shows the widget. |
-| `showStopped` | `true` | Off lists only running boxes. |
+| `showStopped` | `true` | Off hides stopped boxes from the list. They still count, a name one uses is still taken, and IPC can still start one. |
 | `containerManager` | `podman` | `podman` or `docker`. The list is read from this engine, and every distrobox command runs with `DBX_CONTAINER_MANAGER` set to it. |
 | `hideWhenEmpty` | `false` | Hide the bar glyph while there are no boxes. |
 | `templatesFile` | `~/.config/distrobox/boxes.ini` | A `distrobox assemble` file whose sections appear under **Start from** as your own templates. Read, never run. |

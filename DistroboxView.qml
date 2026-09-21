@@ -55,7 +55,7 @@ FocusScope {
 
   // ------------------------------------------------------------- derivation
 
-  readonly property var visibleBoxes: Model.filterBoxes(DistroboxState.boxes, filterText)
+  readonly property var visibleBoxes: Model.visibleBoxes(DistroboxState.boxes, DistroboxState.showStopped, filterText)
   readonly property var rows: Model.rowsFor(visibleBoxes)
   readonly property var cursorRow: cursorIndex >= 0 && cursorIndex < rows.length ? rows[cursorIndex] : null
   readonly property var cursorBox: cursorRow ? Model.boxByName(DistroboxState.boxes, cursorRow.name) : null
@@ -121,6 +121,8 @@ FocusScope {
   // o: back to whatever the last create or upgrade printed.
   function openLog() {
     if (DistroboxState.log.length === 0) return
+    // "Busy … press o to watch" has done its job once you are watching.
+    DistroboxState.clearBusyNotice()
     setMode("log")
   }
 
@@ -132,7 +134,7 @@ FocusScope {
   // clipboard and on screen. Read-only, so it ignores the mutation lock and
   // leaves the stream alone.
   function promote(box) {
-    var snippet = Model.promoteSnippet(box.name, box.image)
+    var snippet = Model.promoteSnippet(box.name, box.image, DistroboxState.engine)
     if (!snippet) return
     DistroboxState.copyText(snippet)
     root.snippetName = box.name
@@ -226,9 +228,10 @@ FocusScope {
       filterField.forceActiveFocus()
       return
     }
+    var next = Model.stepCursor(cursorActive, cursorIndex, delta, rows.length)
     cursorActive = true
     cursorFromKeyboard = true
-    rememberCursor(cursorIndex + delta)
+    rememberCursor(next)
   }
 
   // Hover names the box, not a row: while the list reconciles, a row number can
@@ -464,7 +467,7 @@ FocusScope {
               everLoaded: DistroboxState.everLoaded,
               reachable: DistroboxState.reachable,
               engine: DistroboxState.engine,
-              filtered: DistroboxState.boxes.length > 0,
+              filtered: root.filterText.trim() !== "",
               showStopped: DistroboxState.showStopped
             })
             textFormat: Text.PlainText
@@ -551,7 +554,7 @@ FocusScope {
 
         Text {
           width: parent.width
-          visible: text !== "" && DistroboxState.lastError === "" && root.mode !== "log"
+          visible: text !== "" && DistroboxState.lastError === "" && root.mode === "list"
           text: {
             if (DistroboxState.streaming) return DistroboxState.streamTitle + " …   o to watch"
             if (DistroboxState.streamExit >= 0) {
@@ -584,7 +587,7 @@ FocusScope {
 
           Text {
             anchors.right: parent.right
-            text: DistroboxState.mutating ? "working…" : "? keys   c create   esc close"
+            text: Model.footerKeys(root.mode, DistroboxState.mutating)
             textFormat: Text.PlainText
             color: root.foreground
             opacity: 0.65

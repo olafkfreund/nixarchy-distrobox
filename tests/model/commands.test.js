@@ -14,7 +14,7 @@ test("every distrobox argv starts with the engine, and the engine is never user 
     Model.stopArgv("podman", ["f"]),
     Model.removeArgv("podman", "f"),
     Model.upgradeArgv("podman", "f"),
-    Model.upgradeArgv("podman", null),
+    ...Model.upgradeAllArgvs("podman", ["f", "g"]),
     ...Model.restartArgvs("podman", "f")
   ]
   for (const argv of all) {
@@ -44,7 +44,7 @@ test("stop takes several names; rm is --force without --yes or --rm-home", () =>
 
 test("upgrade one or all, never with DBX_NON_INTERACTIVE (it would auto-create a missing box)", () => {
   eq(Model.upgradeArgv("podman", "a"), PREFIX.concat(["distrobox", "upgrade", "a"]))
-  eq(Model.upgradeArgv("podman", "").slice(-1), ["--all"])
+  for (const bad of ["", null, undefined, "--all", "a b"]) eq(Model.upgradeArgv("podman", bad), null)
   for (const argv of [Model.upgradeArgv("podman", "a"), Model.startArgv("podman", "a"), Model.enterArgv("podman", "a")]) {
     ok(!argv.some(a => a.indexOf("DBX_NON_INTERACTIVE") === 0))
   }
@@ -71,11 +71,11 @@ test("an invalid name gives null, never a command", () => {
 })
 
 test("list and inspect argv", () => {
-  const list = Model.listArgv("docker", true)
+  const list = Model.listArgv("docker")
   eq(list.slice(0, 5), ["docker", "ps", "-a", "--no-trunc", "--filter"])
   eq(list[5], "label=manager=distrobox")
   eq(list[list.length - 1], Model.BOX_FORMAT)
-  ok(Model.listArgv("podman", false).indexOf("-a") === -1)
+  ok(Model.listArgv("podman").indexOf("-a") === 2)
   eq(Model.inspectHomesArgv("podman", ["a", "b"]).slice(-2), ["a", "b"])
 })
 
@@ -112,8 +112,29 @@ const SNIPPET = `programs.nixarchy.services.boxes.machines.t1 = {
   # whole point of promoting it: from here on it is declared instead.
 };`
 
-test("promoteSnippet is what nixarchy box promote prints", () => {
+test("promoteSnippet declares the box, naming the engine it came from", () => {
+  eq(Model.promoteSnippet("t1", "quay.io/toolbx-images/debian-toolbox:12", "podman"), SNIPPET)
   eq(Model.promoteSnippet("t1", "quay.io/toolbx-images/debian-toolbox:12"), SNIPPET)
+  ok(Model.promoteSnippet("t1", "docker.io/library/debian:12", "docker").indexOf("knows what docker recorded") !== -1)
+})
+
+test("promoteSnippet quotes a name that is not a plain Nix identifier", () => {
+  const head = (n) => Model.promoteSnippet(n, "docker.io/library/debian:12").split("\n")[0]
+  eq(head("t1"), "programs.nixarchy.services.boxes.machines.t1 = {")
+  eq(head("dev-box_2"), "programs.nixarchy.services.boxes.machines.dev-box_2 = {")
+  eq(head("my.box"), 'programs.nixarchy.services.boxes.machines."my.box" = {')
+  eq(head("2box"), 'programs.nixarchy.services.boxes.machines."2box" = {')
+  eq(head("in"), 'programs.nixarchy.services.boxes.machines."in" = {')
+})
+
+// Parsed by Nix itself when it is on PATH (not inside the flake check sandbox).
+test("every promote snippet parses as Nix", () => {
+  const { execFileSync } = require("child_process")
+  try { execFileSync("nix-instantiate", ["--version"], { stdio: "ignore" }) } catch (e) { return }
+  for (const n of ["t1", "my.box", "2box", "in", "a-b.c_d", "or"]) {
+    const expr = "{ " + Model.promoteSnippet(n, "docker.io/library/debian:12", "docker") + " }"
+    execFileSync("nix-instantiate", ["--parse", "--expr", expr], { stdio: "ignore" })
+  }
 })
 
 test("a name or image the host would not survive gives null, never a snippet", () => {
@@ -127,4 +148,21 @@ test("copyTextArgv carries any text as one argv element", () => {
   eq(Model.copyTextArgv(SNIPPET), ["wl-copy", "--trim-newline", SNIPPET])
   for (const bad of ["", undefined, null, 7, ["x"]]) eq(Model.copyTextArgv(bad), null)
   eq(Model.copyArgv("t1"), ["wl-copy", "--trim-newline", "t1"])
+})
+
+test("upgrade all is one upgrade per box, and any bad name refuses the lot", () => {
+  eq(Model.upgradeAllArgvs("docker", ["a", "b"]), [
+    ["env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "a"],
+    ["env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "b"]
+  ])
+  eq(Model.upgradeAllArgvs("podman", []), null)
+  eq(Model.upgradeAllArgvs("podman", null), null)
+  eq(Model.upgradeAllArgvs("podman", ["a", "$(id)"]), null)
+})
+
+test("upgradeSummary counts the boxes and names the ones that failed", () => {
+  eq(Model.upgradeSummary([{ name: "a", code: 0 }, { name: "b", code: 0 }]), { text: "── upgraded 2 of 2", failed: [] })
+  eq(Model.upgradeSummary([{ name: "a", code: 125 }, { name: "b", code: 0 }, { name: "c", code: 1 }]),
+     { text: "── upgraded 1 of 3 · failed: a, c", failed: ["a", "c"] })
+  eq(Model.upgradeSummary([{ name: "a", code: 1 }]), { text: "── upgraded 0 of 1 · failed: a", failed: ["a"] })
 })

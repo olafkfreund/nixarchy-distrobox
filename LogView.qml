@@ -108,7 +108,8 @@ FocusScope {
         width: ListView.view.width
         text: modelData
         textFormat: Text.PlainText
-        wrapMode: Text.WrapAnywhere
+        // Break at words; a long hash with no spaces still breaks anywhere.
+        wrapMode: Text.Wrap
         color: String(modelData).indexOf("── exit") === 0 ? (root.exitCode > 0 ? Color.urgent : Color.accent) : root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption
@@ -119,7 +120,7 @@ FocusScope {
       id: hint
       width: parent.width
       horizontalAlignment: Text.AlignRight
-      text: (root.follow ? "following   " : "G follow   ") + "j k scroll   esc back" + (root.running ? " (keeps running)" : "")
+      text: Model.logHint(root.follow, logList.contentHeight > logList.height, root.running)
       textFormat: Text.PlainText
       color: root.foreground
       opacity: 0.65

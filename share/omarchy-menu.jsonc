@@ -8,7 +8,7 @@
   "apps.distrobox": {
     "icon": "󰆧",
     "label": "Distrobox",
-    "description": "Create, enter, start, stop, upgrade and delete boxes · Super+Alt+D",
+    "description": "Create, enter, start, stop, upgrade and delete boxes",
     "aliases": ["distrobox", "boxes", "toolbox", "containers", "create box", "enter box"],
     "action": "omarchy-shell shell toggle nixarchy.distrobox '{}'"
   }

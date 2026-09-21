@@ -128,6 +128,18 @@ var LINE_CAP = 2048
 
 // ponytail: a line longer than 2 KB is a progress bar or a binary blob, not
 // something to read; cut it rather than let one line grow the log unbounded.
+// distrobox create exits 0 when the name is already taken, after printing
+// "Distrobox named 'x' already exists." A create that says so did not create
+// anything, so the panel must not report it as done.
+function createRefusal(lines) {
+  var list = lines || []
+  for (var i = 0; i < list.length; i++) {
+    var line = trim(stripAnsi(String(list[i])))
+    if (/^Distrobox named '.*' already exists/.test(line)) return line
+  }
+  return ""
+}
+
 function capLine(line) {
   var text = String(line === undefined || line === null ? "" : line)
   return text.length > LINE_CAP ? text.substring(0, LINE_CAP - 1) + "…" : text
@@ -284,11 +296,23 @@ function boxByName(boxes, name) {
 function compareBoxes(a, b) {
   if (a.up !== b.up) return a.up ? -1 : 1
   if (a.failing !== b.failing) return a.failing ? -1 : 1
+  // Case-insensitive, so "demo-x" sits between "Debian" and "Fedora"; the
+  // exact name breaks ties so the order is stable.
+  var al = a.name.toLowerCase(), bl = b.name.toLowerCase()
+  if (al !== bl) return al < bl ? -1 : 1
   return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
 }
 
 function sortBoxes(boxes) {
   return (boxes || []).slice().sort(compareBoxes)
+}
+
+// What the list shows: stopped boxes hidden when showStopped is off, then the
+// filter. Everything else (counts, validation, IPC) reads the full list.
+function visibleBoxes(boxes, showStopped, query) {
+  var list = boxes || []
+  if (showStopped === false) list = list.filter(function(b) { return b.up })
+  return filterBoxes(list, query)
 }
 
 function filterBoxes(boxes, query) {
@@ -356,6 +380,14 @@ function clampCursor(cursorIndex, total) {
   return cursorIndex
 }
 
+// One j/k step. An inactive cursor (just opened, or back from the filter)
+// lands on the row it already points at instead of moving past it, so the
+// first j highlights the first row.
+function stepCursor(active, index, delta, total) {
+  if (total <= 0) return 0
+  return clampCursor(active ? index + delta : index, total)
+}
+
 // Where the cursor belongs after the rows changed: on the same box if it is
 // still listed, otherwise on the same row number, clamped to the new list. The
 // list re-sorts (running boxes first) on every refresh, so a bare index would
@@ -418,6 +450,20 @@ function summaryText(boxes, reachable, engine) {
   var c = counts(boxes)
   if (c.total === 0) return "No boxes"
   return c.running + " of " + c.total + " running"
+}
+
+// The keys on the right of the footer. Only the list needs them: the form,
+// the log and the snippet each draw their own, and "esc close" is wrong there.
+function footerKeys(mode, mutating) {
+  if (mode !== "list") return ""
+  return mutating ? "working…" : "? keys   c create   esc close"
+}
+
+// The log's own key hint. Scrolling and following only mean something when
+// the text is taller than the view.
+function logHint(follow, overflows, running) {
+  var keys = overflows || running ? (follow ? "following   " : "G follow   ") + "j k scroll   esc back" : "esc back"
+  return keys + (running ? " (keeps running)" : "")
 }
 
 function footerText(boxes) {
@@ -510,10 +556,11 @@ function dbx(engine) {
 // Argv arrays only. Each returns null when an input would not be safe in its
 // slot, and the caller does nothing.
 
-function listArgv(engine, showStopped) {
-  var argv = [engineFor(engine), "ps"]
-  if (showStopped !== false) argv.push("-a")
-  return argv.concat(["--no-trunc", "--filter", "label=manager=distrobox", "--format", BOX_FORMAT])
+// Always -a: a stopped box still exists, so it still counts, its name is still
+// taken, and IPC can still start it. showStopped only hides it in the view
+// (visibleBoxes).
+function listArgv(engine) {
+  return [engineFor(engine), "ps", "-a"].concat(["--no-trunc", "--filter", "label=manager=distrobox", "--format", BOX_FORMAT])
 }
 
 function allNames(names) {
@@ -568,9 +615,32 @@ function removeArgv(engine, name) {
 // for one that vanished, "non-interactive" means answering yes to "create
 // it now?". State answers every prompt with "n" instead.
 function upgradeArgv(engine, name) {
-  var target = name === null || name === undefined || name === "" ? "--all" : name
-  if (target !== "--all" && !isBoxName(target)) return null
-  return dbx(engine).concat(["distrobox", "upgrade", target])
+  if (!isBoxName(name)) return null
+  return dbx(engine).concat(["distrobox", "upgrade", name])
+}
+
+// U: one upgrade per box, not `distrobox upgrade --all`, which gives up at the
+// first box whose container will not start and leaves the rest untouched.
+function upgradeAllArgvs(engine, names) {
+  var list = names || []
+  if (list.length === 0) return null
+  var out = []
+  for (var i = 0; i < list.length; i++) {
+    var argv = upgradeArgv(engine, list[i])
+    if (!argv) return null
+    out.push(argv)
+  }
+  return out
+}
+
+// The last line of an upgrade-all, from [{name, code}], and who failed.
+function upgradeSummary(results) {
+  var list = results || []
+  var failed = []
+  for (var i = 0; i < list.length; i++) if (list[i].code !== 0) failed.push(list[i].name)
+  var text = "── upgraded " + (list.length - failed.length) + " of " + list.length
+  if (failed.length > 0) text += " · failed: " + failed.join(", ")
+  return { text: text, failed: failed }
 }
 
 function copyTextArgv(text) {
@@ -586,13 +656,23 @@ function copyArgv(name) {
 // pkgs/box.nix). The user pastes it into their flake; nothing here writes it.
 // The name and the image are the only values interpolated, and both regexes
 // exclude every character that could close the Nix string or the comment.
-function promoteSnippet(name, image) {
+var NIX_KEYWORDS = ["assert", "else", "if", "in", "inherit", "let", "or", "rec", "then", "with"]
+
+// A box name as a Nix attribute: bare when it is a plain identifier, quoted
+// otherwise ("my.box" would nest, "2box" would not parse). isBoxName already
+// keeps quotes, backslashes and $ out, so the quoted form needs no escaping.
+function nixAttrName(name) {
+  var bare = /^[A-Za-z_][A-Za-z0-9_'-]*$/.test(name) && NIX_KEYWORDS.indexOf(name) === -1
+  return bare ? name : "\"" + name + "\""
+}
+
+function promoteSnippet(name, image, engine) {
   if (!isBoxName(name) || !isImageRef(image)) return null
-  return "programs.nixarchy.services.boxes.machines." + name + " = {\n" +
+  return "programs.nixarchy.services.boxes.machines." + nixAttrName(name) + " = {\n" +
     "  image = \"" + image + "\";\n" +
     "  # Add whatever else this box needs -- additional_packages, init_hooks,\n" +
     "  # exported_apps -- see distrobox-assemble's manual. This snippet only\n" +
-    "  # knows what podman recorded for the image; nothing else about how\n" +
+    "  # knows what " + engineFor(engine) + " recorded for the image; nothing else about how\n" +
     "  # '" + name + "' was set up by hand is knowable after the fact -- that is the\n" +
     "  # whole point of promoting it: from here on it is declared instead.\n" +
     "};"

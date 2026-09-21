@@ -8,6 +8,18 @@ test("sortBoxes puts running first, then failing, then by name", () => {
   eq(Model.boxNames(got), ["m", "z", "a", "b", "c"])
 })
 
+test("sortBoxes orders names case-insensitively", () => {
+  eq(Model.boxNames(Model.sortBoxes([stopped("demo-u"), stopped("Fedora"), stopped("Debian")])), ["Debian", "demo-u", "Fedora"])
+})
+
+test("visibleBoxes hides stopped boxes only when asked, then filters", () => {
+  const list = [running("fedora"), stopped("arch"), stopped("alpine")]
+  eq(Model.boxNames(Model.visibleBoxes(list, true, "")), ["fedora", "arch", "alpine"])
+  eq(Model.boxNames(Model.visibleBoxes(list, false, "")), ["fedora"])
+  eq(Model.boxNames(Model.visibleBoxes(list, true, "al")), ["alpine"])
+  eq(Model.visibleBoxes(list, false, "al").length, 0)
+})
+
 test("filterBoxes matches name or image, case-insensitively", () => {
   const arch = box({ Names: "arch", ID: "arch0", State: "exited", Status: "Exited (0) 1 day ago", Image: "quay.io/toolbx/arch-toolbox:latest" })
   const list = [running("fedora"), arch]
@@ -110,4 +122,23 @@ test("cursorAfter: after its box is gone, the fallback row's box is followed", (
   eq(at, 1)
   const remembered = rows("a", "c", "d")[at].key                // "c"
   eq(Model.cursorAfter(remembered, rows("c", "a", "d"), at), 0)
+})
+
+test("stepCursor: the first step from an inactive cursor lands on its row", () => {
+  eq(Model.stepCursor(false, 0, 1, 5), 0)
+  eq(Model.stepCursor(false, 0, -1, 5), 0)
+  eq(Model.stepCursor(true, 0, 1, 5), 1)
+  eq(Model.stepCursor(true, 4, 1, 5), 4)
+  eq(Model.stepCursor(true, 2, -1, 5), 1)
+  eq(Model.stepCursor(true, 3, 1, 0), 0)
+})
+
+test("footerKeys only in the list; logHint drops scrolling when nothing scrolls", () => {
+  eq(Model.footerKeys("list", false), "? keys   c create   esc close")
+  eq(Model.footerKeys("list", true), "working…")
+  for (const mode of ["form", "log", "snippet"]) eq(Model.footerKeys(mode, false), "")
+  eq(Model.logHint(true, false, false), "esc back")
+  eq(Model.logHint(true, true, false), "following   j k scroll   esc back")
+  eq(Model.logHint(false, true, true), "G follow   j k scroll   esc back (keeps running)")
+  eq(Model.logHint(true, false, true), "following   j k scroll   esc back (keeps running)")
 })

@@ -164,6 +164,8 @@ include=dev-ubuntu
 additional_packages="rustup"
 ```
 
+![The Start from list: the built-in templates, then dev-ubuntu and dev-ubuntu-rust marked yours, and dev-root greyed out](https://olafkfreund.github.io/nixarchy-distrobox/img/templates.png)
+
 - The section name becomes the box name. `include` pulls in another section,
   and keys that can repeat (`volume`, `additional_packages`,
   `additional_flags`, the hooks) add to what they include.
@@ -196,6 +198,10 @@ and follows the package manager's output:
 - press `o` at any time to see the log again;
 - `j` and `k` scroll it, and `G` jumps back to the end.
 
+`U` upgrades the boxes one at a time, in list order, and starts any that are
+stopped. A box that fails does not stop the rest: the last line of the log
+says how many were upgraded and names the ones that failed.
+
 ### Keep a box you made by hand
 
 `p` copies a Nix snippet for the box under the cursor and shows it:
@@ -208,8 +214,11 @@ programs.nixarchy.services.boxes.machines.work = {
 };
 ```
 
+![The promote snippet for demo-fedora, shown in the panel after p](https://olafkfreund.github.io/nixarchy-distrobox/img/promote.png)
+
 Paste it into your nixarchy flake and the box is declared: a rebuild makes it
-again on any machine. It is the same snippet `nixarchy box promote` prints.
+again on any machine. A name that is not a plain Nix identifier, such as
+`my.box`, is quoted (`machines."my.box"`).
 
 The plugin edits nothing — not your flake, not the box. Until you paste it and
 rebuild, the box carries on exactly as before, and the image in the snippet is

@@ -471,7 +471,7 @@ FocusScope {
                 width: parent.width
                 text: fieldItem.modelData.kind === "template" && root.templateNotice !== "" ? root.templateNotice
                   : fieldItem.error !== "" ? fieldItem.error
-                  : (fieldItem.isCurrent && fieldItem.warning !== "" ? fieldItem.warning
+                  : (fieldItem.warning !== "" ? fieldItem.warning
                   : (fieldItem.isCurrent && !fieldItem.takesText && fieldItem.modelData.hint ? fieldItem.modelData.hint : ""))
                 textFormat: Text.PlainText
                 color: fieldItem.error !== "" || (fieldItem.modelData.kind === "template" && root.templateNotice !== "")
