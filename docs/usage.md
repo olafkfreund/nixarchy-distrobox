@@ -209,7 +209,8 @@ programs.nixarchy.services.boxes.machines.work = {
 ```
 
 Paste it into your nixarchy flake and the box is declared: a rebuild makes it
-again on any machine. It is the same snippet `nixarchy box promote` prints.
+again on any machine. A name that is not a plain Nix identifier, such as
+`my.box`, is quoted (`machines."my.box"`).
 
 The plugin edits nothing — not your flake, not the box. Until you paste it and
 rebuild, the box carries on exactly as before, and the image in the snippet is

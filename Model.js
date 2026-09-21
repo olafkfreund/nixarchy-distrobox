@@ -611,13 +611,23 @@ function copyArgv(name) {
 // pkgs/box.nix). The user pastes it into their flake; nothing here writes it.
 // The name and the image are the only values interpolated, and both regexes
 // exclude every character that could close the Nix string or the comment.
-function promoteSnippet(name, image) {
+var NIX_KEYWORDS = ["assert", "else", "if", "in", "inherit", "let", "or", "rec", "then", "with"]
+
+// A box name as a Nix attribute: bare when it is a plain identifier, quoted
+// otherwise ("my.box" would nest, "2box" would not parse). isBoxName already
+// keeps quotes, backslashes and $ out, so the quoted form needs no escaping.
+function nixAttrName(name) {
+  var bare = /^[A-Za-z_][A-Za-z0-9_'-]*$/.test(name) && NIX_KEYWORDS.indexOf(name) === -1
+  return bare ? name : "\"" + name + "\""
+}
+
+function promoteSnippet(name, image, engine) {
   if (!isBoxName(name) || !isImageRef(image)) return null
-  return "programs.nixarchy.services.boxes.machines." + name + " = {\n" +
+  return "programs.nixarchy.services.boxes.machines." + nixAttrName(name) + " = {\n" +
     "  image = \"" + image + "\";\n" +
     "  # Add whatever else this box needs -- additional_packages, init_hooks,\n" +
     "  # exported_apps -- see distrobox-assemble's manual. This snippet only\n" +
-    "  # knows what podman recorded for the image; nothing else about how\n" +
+    "  # knows what " + engineFor(engine) + " recorded for the image; nothing else about how\n" +
     "  # '" + name + "' was set up by hand is knowable after the fact -- that is the\n" +
     "  # whole point of promoting it: from here on it is declared instead.\n" +
     "};"

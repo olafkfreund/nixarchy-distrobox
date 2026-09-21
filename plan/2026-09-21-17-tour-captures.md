@@ -128,6 +128,10 @@ the same commit.
    - `Model.promoteSnippet(name, image, engine)`: the attribute is bare or
      quoted as decided, and the comment line reads `knows what <engine>
      recorded`, with `engineFor(engine)` so the default stays podman.
+   - Found while implementing: Nix keywords (`if`, `in`, `let`, `or`, `rec`,
+     `with` and the rest) match the identifier pattern but cannot be bare
+     attribute names, and `isBoxName` allows them. They are quoted too
+     (`nixAttrName`).
    - `DistroboxView.promote` passes `DistroboxState.engine`.
    - `commands.test.js`:
      - the existing literal row gets the engine;

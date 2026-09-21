@@ -132,7 +132,7 @@ FocusScope {
   // clipboard and on screen. Read-only, so it ignores the mutation lock and
   // leaves the stream alone.
   function promote(box) {
-    var snippet = Model.promoteSnippet(box.name, box.image)
+    var snippet = Model.promoteSnippet(box.name, box.image, DistroboxState.engine)
     if (!snippet) return
     DistroboxState.copyText(snippet)
     root.snippetName = box.name

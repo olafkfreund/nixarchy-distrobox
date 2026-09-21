@@ -112,8 +112,29 @@ const SNIPPET = `programs.nixarchy.services.boxes.machines.t1 = {
   # whole point of promoting it: from here on it is declared instead.
 };`
 
-test("promoteSnippet is what nixarchy box promote prints", () => {
+test("promoteSnippet declares the box, naming the engine it came from", () => {
+  eq(Model.promoteSnippet("t1", "quay.io/toolbx-images/debian-toolbox:12", "podman"), SNIPPET)
   eq(Model.promoteSnippet("t1", "quay.io/toolbx-images/debian-toolbox:12"), SNIPPET)
+  ok(Model.promoteSnippet("t1", "docker.io/library/debian:12", "docker").indexOf("knows what docker recorded") !== -1)
+})
+
+test("promoteSnippet quotes a name that is not a plain Nix identifier", () => {
+  const head = (n) => Model.promoteSnippet(n, "docker.io/library/debian:12").split("\n")[0]
+  eq(head("t1"), "programs.nixarchy.services.boxes.machines.t1 = {")
+  eq(head("dev-box_2"), "programs.nixarchy.services.boxes.machines.dev-box_2 = {")
+  eq(head("my.box"), 'programs.nixarchy.services.boxes.machines."my.box" = {')
+  eq(head("2box"), 'programs.nixarchy.services.boxes.machines."2box" = {')
+  eq(head("in"), 'programs.nixarchy.services.boxes.machines."in" = {')
+})
+
+// Parsed by Nix itself when it is on PATH (not inside the flake check sandbox).
+test("every promote snippet parses as Nix", () => {
+  const { execFileSync } = require("child_process")
+  try { execFileSync("nix-instantiate", ["--version"], { stdio: "ignore" }) } catch (e) { return }
+  for (const n of ["t1", "my.box", "2box", "in", "a-b.c_d", "or"]) {
+    const expr = "{ " + Model.promoteSnippet(n, "docker.io/library/debian:12", "docker") + " }"
+    execFileSync("nix-instantiate", ["--parse", "--expr", expr], { stdio: "ignore" })
+  }
 })
 
 test("a name or image the host would not survive gives null, never a snippet", () => {
