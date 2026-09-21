@@ -71,11 +71,11 @@ test("an invalid name gives null, never a command", () => {
 })
 
 test("list and inspect argv", () => {
-  const list = Model.listArgv("docker", true)
+  const list = Model.listArgv("docker")
   eq(list.slice(0, 5), ["docker", "ps", "-a", "--no-trunc", "--filter"])
   eq(list[5], "label=manager=distrobox")
   eq(list[list.length - 1], Model.BOX_FORMAT)
-  ok(Model.listArgv("podman", false).indexOf("-a") === -1)
+  ok(Model.listArgv("podman").indexOf("-a") === 2)
   eq(Model.inspectHomesArgv("podman", ["a", "b"]).slice(-2), ["a", "b"])
 })
 

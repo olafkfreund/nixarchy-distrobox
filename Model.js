@@ -295,6 +295,14 @@ function sortBoxes(boxes) {
   return (boxes || []).slice().sort(compareBoxes)
 }
 
+// What the list shows: stopped boxes hidden when showStopped is off, then the
+// filter. Everything else (counts, validation, IPC) reads the full list.
+function visibleBoxes(boxes, showStopped, query) {
+  var list = boxes || []
+  if (showStopped === false) list = list.filter(function(b) { return b.up })
+  return filterBoxes(list, query)
+}
+
 function filterBoxes(boxes, query) {
   var q = trim(query).toLowerCase()
   if (!q) return (boxes || []).slice()
@@ -514,10 +522,11 @@ function dbx(engine) {
 // Argv arrays only. Each returns null when an input would not be safe in its
 // slot, and the caller does nothing.
 
-function listArgv(engine, showStopped) {
-  var argv = [engineFor(engine), "ps"]
-  if (showStopped !== false) argv.push("-a")
-  return argv.concat(["--no-trunc", "--filter", "label=manager=distrobox", "--format", BOX_FORMAT])
+// Always -a: a stopped box still exists, so it still counts, its name is still
+// taken, and IPC can still start it. showStopped only hides it in the view
+// (visibleBoxes).
+function listArgv(engine) {
+  return [engineFor(engine), "ps", "-a"].concat(["--no-trunc", "--filter", "label=manager=distrobox", "--format", BOX_FORMAT])
 }
 
 function allNames(names) {

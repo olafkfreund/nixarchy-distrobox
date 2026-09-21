@@ -55,7 +55,7 @@ FocusScope {
 
   // ------------------------------------------------------------- derivation
 
-  readonly property var visibleBoxes: Model.filterBoxes(DistroboxState.boxes, filterText)
+  readonly property var visibleBoxes: Model.visibleBoxes(DistroboxState.boxes, DistroboxState.showStopped, filterText)
   readonly property var rows: Model.rowsFor(visibleBoxes)
   readonly property var cursorRow: cursorIndex >= 0 && cursorIndex < rows.length ? rows[cursorIndex] : null
   readonly property var cursorBox: cursorRow ? Model.boxByName(DistroboxState.boxes, cursorRow.name) : null
@@ -464,7 +464,7 @@ FocusScope {
               everLoaded: DistroboxState.everLoaded,
               reachable: DistroboxState.reachable,
               engine: DistroboxState.engine,
-              filtered: DistroboxState.boxes.length > 0,
+              filtered: root.filterText.trim() !== "",
               showStopped: DistroboxState.showStopped
             })
             textFormat: Text.PlainText

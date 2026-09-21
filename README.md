@@ -142,7 +142,7 @@ Set these in the bar widget's settings (Super+Alt+B), or inline on its entry in
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `refreshIntervalSec` | `30` | How often the bar glyph polls. An open panel polls every 3 s regardless. Nothing polls while every surface is closed and no bar shows the widget. |
-| `showStopped` | `true` | Off lists only running boxes. |
+| `showStopped` | `true` | Off hides stopped boxes from the list. They still count, a name one uses is still taken, and IPC can still start one. |
 | `containerManager` | `podman` | `podman` or `docker`. The list is read from this engine, and every distrobox command runs with `DBX_CONTAINER_MANAGER` set to it. |
 | `hideWhenEmpty` | `false` | Hide the bar glyph while there are no boxes. |
 | `templatesFile` | `~/.config/distrobox/boxes.ini` | A `distrobox assemble` file whose sections appear under **Start from** as your own templates. Read, never run. |

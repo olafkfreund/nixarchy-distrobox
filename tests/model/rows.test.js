@@ -12,6 +12,14 @@ test("sortBoxes orders names case-insensitively", () => {
   eq(Model.boxNames(Model.sortBoxes([stopped("demo-u"), stopped("Fedora"), stopped("Debian")])), ["Debian", "demo-u", "Fedora"])
 })
 
+test("visibleBoxes hides stopped boxes only when asked, then filters", () => {
+  const list = [running("fedora"), stopped("arch"), stopped("alpine")]
+  eq(Model.boxNames(Model.visibleBoxes(list, true, "")), ["fedora", "arch", "alpine"])
+  eq(Model.boxNames(Model.visibleBoxes(list, false, "")), ["fedora"])
+  eq(Model.boxNames(Model.visibleBoxes(list, true, "al")), ["alpine"])
+  eq(Model.visibleBoxes(list, false, "al").length, 0)
+})
+
 test("filterBoxes matches name or image, case-insensitively", () => {
   const arch = box({ Names: "arch", ID: "arch0", State: "exited", Status: "Exited (0) 1 day ago", Image: "quay.io/toolbx/arch-toolbox:latest" })
   const list = [running("fedora"), arch]

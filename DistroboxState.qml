@@ -85,7 +85,7 @@ Singleton {
     if (listProcess.running) return
     root.loading = true
     root.polls += 1
-    listProcess.command = Model.listArgv(root.engine, root.showStopped)
+    listProcess.command = Model.listArgv(root.engine)
     listProcess.running = true
   }
 
@@ -113,8 +113,6 @@ Singleton {
     root.homesKey = ""
     if (root.active || root.background) root.refresh()
   }
-
-  onShowStoppedChanged: if (root.active || root.background) root.refresh()
 
   // Homes are one inspect per change of the set of boxes, never per poll.
   function refreshHomes(names) {
