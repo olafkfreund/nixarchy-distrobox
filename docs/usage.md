@@ -196,6 +196,10 @@ and follows the package manager's output:
 - press `o` at any time to see the log again;
 - `j` and `k` scroll it, and `G` jumps back to the end.
 
+`U` upgrades the boxes one at a time, in list order, and starts any that are
+stopped. A box that fails does not stop the rest: the last line of the log
+says how many were upgraded and names the ones that failed.
+
 ### Keep a box you made by hand
 
 `p` copies a Nix snippet for the box under the cursor and shows it:

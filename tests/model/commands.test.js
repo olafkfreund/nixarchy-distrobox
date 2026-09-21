@@ -14,7 +14,7 @@ test("every distrobox argv starts with the engine, and the engine is never user 
     Model.stopArgv("podman", ["f"]),
     Model.removeArgv("podman", "f"),
     Model.upgradeArgv("podman", "f"),
-    Model.upgradeArgv("podman", null),
+    ...Model.upgradeAllArgvs("podman", ["f", "g"]),
     ...Model.restartArgvs("podman", "f")
   ]
   for (const argv of all) {
@@ -44,7 +44,7 @@ test("stop takes several names; rm is --force without --yes or --rm-home", () =>
 
 test("upgrade one or all, never with DBX_NON_INTERACTIVE (it would auto-create a missing box)", () => {
   eq(Model.upgradeArgv("podman", "a"), PREFIX.concat(["distrobox", "upgrade", "a"]))
-  eq(Model.upgradeArgv("podman", "").slice(-1), ["--all"])
+  for (const bad of ["", null, undefined, "--all", "a b"]) eq(Model.upgradeArgv("podman", bad), null)
   for (const argv of [Model.upgradeArgv("podman", "a"), Model.startArgv("podman", "a"), Model.enterArgv("podman", "a")]) {
     ok(!argv.some(a => a.indexOf("DBX_NON_INTERACTIVE") === 0))
   }
@@ -148,4 +148,21 @@ test("copyTextArgv carries any text as one argv element", () => {
   eq(Model.copyTextArgv(SNIPPET), ["wl-copy", "--trim-newline", SNIPPET])
   for (const bad of ["", undefined, null, 7, ["x"]]) eq(Model.copyTextArgv(bad), null)
   eq(Model.copyArgv("t1"), ["wl-copy", "--trim-newline", "t1"])
+})
+
+test("upgrade all is one upgrade per box, and any bad name refuses the lot", () => {
+  eq(Model.upgradeAllArgvs("docker", ["a", "b"]), [
+    ["env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "a"],
+    ["env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "b"]
+  ])
+  eq(Model.upgradeAllArgvs("podman", []), null)
+  eq(Model.upgradeAllArgvs("podman", null), null)
+  eq(Model.upgradeAllArgvs("podman", ["a", "$(id)"]), null)
+})
+
+test("upgradeSummary counts the boxes and names the ones that failed", () => {
+  eq(Model.upgradeSummary([{ name: "a", code: 0 }, { name: "b", code: 0 }]), { text: "── upgraded 2 of 2", failed: [] })
+  eq(Model.upgradeSummary([{ name: "a", code: 125 }, { name: "b", code: 0 }, { name: "c", code: 1 }]),
+     { text: "── upgraded 1 of 3 · failed: a, c", failed: ["a", "c"] })
+  eq(Model.upgradeSummary([{ name: "a", code: 1 }]), { text: "── upgraded 0 of 1 · failed: a", failed: ["a"] })
 })

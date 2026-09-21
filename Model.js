@@ -601,9 +601,32 @@ function removeArgv(engine, name) {
 // for one that vanished, "non-interactive" means answering yes to "create
 // it now?". State answers every prompt with "n" instead.
 function upgradeArgv(engine, name) {
-  var target = name === null || name === undefined || name === "" ? "--all" : name
-  if (target !== "--all" && !isBoxName(target)) return null
-  return dbx(engine).concat(["distrobox", "upgrade", target])
+  if (!isBoxName(name)) return null
+  return dbx(engine).concat(["distrobox", "upgrade", name])
+}
+
+// U: one upgrade per box, not `distrobox upgrade --all`, which gives up at the
+// first box whose container will not start and leaves the rest untouched.
+function upgradeAllArgvs(engine, names) {
+  var list = names || []
+  if (list.length === 0) return null
+  var out = []
+  for (var i = 0; i < list.length; i++) {
+    var argv = upgradeArgv(engine, list[i])
+    if (!argv) return null
+    out.push(argv)
+  }
+  return out
+}
+
+// The last line of an upgrade-all, from [{name, code}], and who failed.
+function upgradeSummary(results) {
+  var list = results || []
+  var failed = []
+  for (var i = 0; i < list.length; i++) if (list[i].code !== 0) failed.push(list[i].name)
+  var text = "── upgraded " + (list.length - failed.length) + " of " + list.length
+  if (failed.length > 0) text += " · failed: " + failed.join(", ")
+  return { text: text, failed: failed }
 }
 
 function copyTextArgv(text) {
