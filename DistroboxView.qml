@@ -121,6 +121,8 @@ FocusScope {
   // o: back to whatever the last create or upgrade printed.
   function openLog() {
     if (DistroboxState.log.length === 0) return
+    // "Busy … press o to watch" has done its job once you are watching.
+    DistroboxState.clearBusyNotice()
     setMode("log")
   }
 
@@ -552,7 +554,7 @@ FocusScope {
 
         Text {
           width: parent.width
-          visible: text !== "" && DistroboxState.lastError === "" && root.mode !== "log"
+          visible: text !== "" && DistroboxState.lastError === "" && root.mode === "list"
           text: {
             if (DistroboxState.streaming) return DistroboxState.streamTitle + " …   o to watch"
             if (DistroboxState.streamExit >= 0) {
@@ -585,7 +587,7 @@ FocusScope {
 
           Text {
             anchors.right: parent.right
-            text: DistroboxState.mutating ? "working…" : "? keys   c create   esc close"
+            text: Model.footerKeys(root.mode, DistroboxState.mutating)
             textFormat: Text.PlainText
             color: root.foreground
             opacity: 0.65

@@ -119,7 +119,7 @@ FocusScope {
       id: hint
       width: parent.width
       horizontalAlignment: Text.AlignRight
-      text: (root.follow ? "following   " : "G follow   ") + "j k scroll   esc back" + (root.running ? " (keeps running)" : "")
+      text: Model.logHint(root.follow, logList.contentHeight > logList.height, root.running)
       textFormat: Text.PlainText
       color: root.foreground
       opacity: 0.65

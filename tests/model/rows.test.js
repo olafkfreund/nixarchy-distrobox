@@ -132,3 +132,13 @@ test("stepCursor: the first step from an inactive cursor lands on its row", () =
   eq(Model.stepCursor(true, 2, -1, 5), 1)
   eq(Model.stepCursor(true, 3, 1, 0), 0)
 })
+
+test("footerKeys only in the list; logHint drops scrolling when nothing scrolls", () => {
+  eq(Model.footerKeys("list", false), "? keys   c create   esc close")
+  eq(Model.footerKeys("list", true), "working…")
+  for (const mode of ["form", "log", "snippet"]) eq(Model.footerKeys(mode, false), "")
+  eq(Model.logHint(true, false, false), "esc back")
+  eq(Model.logHint(true, true, false), "following   j k scroll   esc back")
+  eq(Model.logHint(false, true, true), "G follow   j k scroll   esc back (keeps running)")
+  eq(Model.logHint(true, false, true), "following   j k scroll   esc back (keeps running)")
+})

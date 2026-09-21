@@ -452,6 +452,20 @@ function summaryText(boxes, reachable, engine) {
   return c.running + " of " + c.total + " running"
 }
 
+// The keys on the right of the footer. Only the list needs them: the form,
+// the log and the snippet each draw their own, and "esc close" is wrong there.
+function footerKeys(mode, mutating) {
+  if (mode !== "list") return ""
+  return mutating ? "working…" : "? keys   c create   esc close"
+}
+
+// The log's own key hint. Scrolling and following only mean something when
+// the text is taller than the view.
+function logHint(follow, overflows, running) {
+  var keys = overflows || running ? (follow ? "following   " : "G follow   ") + "j k scroll   esc back" : "esc back"
+  return keys + (running ? " (keeps running)" : "")
+}
+
 function footerText(boxes) {
   var c = counts(boxes)
   return plural(c.total, "box") + " · " + c.running + " running"
