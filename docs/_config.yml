@@ -7,9 +7,10 @@ baseurl: "/nixarchy-distrobox"
 # _includes/logo.html and assets/style.css are the whole site, so what builds
 # on GitHub Pages is exactly what is in this directory.
 
-# capture.sh retakes the screenshots; it is a tool, not a page.
+# capture.sh and tour.sh retake the captures; they are tools, not pages.
 exclude:
   - capture.sh
+  - tour.sh
 
 # The manual is one page, docs/usage.md. The sidebar lists its sections, in
 # reading order. The anchors are kramdown's generated heading ids: rename a

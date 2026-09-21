@@ -264,6 +264,8 @@ the same commit.
     - `README.md`: the poster `tour.png` linking to the site, under the
       opening line.
     - `docs/usage.md`: link the two stills from their sections.
+    - Found while verifying: Jekyll published `docs/tour.sh` as a page asset,
+      so `docs/_config.yml` excludes it next to `capture.sh`.
     → verify by `bundle exec jekyll build` if it is available, or by
     checking every `img/` reference resolves to a file.
 17. **Follow-ups filed and the PR opened.**
