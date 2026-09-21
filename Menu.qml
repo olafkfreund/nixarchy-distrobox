@@ -112,9 +112,11 @@ Item {
       width: Math.min(Math.round(root.viewWidth * root.uiScale) + card.contentLeftInset + card.contentRightInset,
                       Math.round(panel.width * 0.9))
       height: Math.min(Math.round(view.implicitHeight * root.uiScale) + card.contentTopInset + card.contentBottomInset,
-                       Math.round(panel.height * 0.85))
+                       Math.round(panel.height * 0.8))
       anchors.horizontalCenter: parent.horizontalCenter
-      y: Math.max(Style.gapsOut, Math.round((panel.height - height) / 3))
+      // A fixed top edge: the card grows and shrinks downwards only, so it
+      // does not jump while the filter changes the list's height.
+      y: Math.max(Style.gapsOut, Math.round(panel.height * 0.12))
       color: Color.popups.background
       borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))
       padding: Style.spacing.popupPadding

@@ -108,7 +108,8 @@ FocusScope {
         width: ListView.view.width
         text: modelData
         textFormat: Text.PlainText
-        wrapMode: Text.WrapAnywhere
+        // Break at words; a long hash with no spaces still breaks anywhere.
+        wrapMode: Text.Wrap
         color: String(modelData).indexOf("── exit") === 0 ? (root.exitCode > 0 ? Color.urgent : Color.accent) : root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption

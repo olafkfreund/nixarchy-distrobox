@@ -29,7 +29,8 @@ Item {
 
   Rectangle {
     anchors.fill: parent
-    color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0.97)
+    // Opaque: the list underneath must not show through the keys.
+    color: Qt.rgba(root.background.r, root.background.g, root.background.b, 1)
 
     MouseArea {
       anchors.fill: parent
