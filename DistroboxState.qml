@@ -334,10 +334,14 @@ Singleton {
 
     onExited: function(code) {
       root.clearBusyNotice()
-      root.streamExit = code
-      root.appendLog("── exit " + code + " · " + (code === 0 ? "done" : "failed"))
-      if (code !== 0) root.lastError = root.streamTitle + " failed (exit " + code + ") — o shows the log"
-      else if (root.streamTitle.indexOf("create ") === 0)
+      var creating = root.streamTitle.indexOf("create ") === 0
+      var refusal = creating && code === 0 ? Model.createRefusal(root.log) : ""
+      var failed = code !== 0 || refusal !== ""
+      root.streamExit = failed && code === 0 ? 1 : code
+      root.appendLog("── exit " + code + " · " + (failed ? "failed" : "done"))
+      if (refusal) root.lastError = refusal
+      else if (code !== 0) root.lastError = root.streamTitle + " failed (exit " + code + ") — o shows the log"
+      else if (creating)
         root.appendLog("The box is created. Its first start (s, or enter) finishes setting it up.")
       if (root.active || root.background) root.refresh()
     }

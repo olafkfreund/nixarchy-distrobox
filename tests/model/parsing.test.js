@@ -90,6 +90,14 @@ test("capLine cuts at 2 KB", () => {
   ok(long.endsWith("…"))
 })
 
+test("createRefusal finds distrobox's already-exists line, and nothing in a real create", () => {
+  const taken = ["$ create demo from x", "\u001b[0mDistrobox named 'demo' already exists.", "To enter, run:", "", "distrobox enter demo"]
+  eq(Model.createRefusal(taken), "Distrobox named 'demo' already exists.")
+  const made = ["$ create demo from x", "Creating 'demo' using image x\t [ OK ]", "Distrobox 'demo' successfully created."]
+  eq(Model.createRefusal(made), "")
+  eq(Model.createRefusal(null), "")
+})
+
 test("errorText prefers distrobox's last real Error line over its progress output", () => {
   // Byte-for-byte shape of a real failed first start (fedora-toolbox with
   // --init): the error sits at the end of a progress line, after a tab.

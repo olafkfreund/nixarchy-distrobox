@@ -128,6 +128,18 @@ var LINE_CAP = 2048
 
 // ponytail: a line longer than 2 KB is a progress bar or a binary blob, not
 // something to read; cut it rather than let one line grow the log unbounded.
+// distrobox create exits 0 when the name is already taken, after printing
+// "Distrobox named 'x' already exists." A create that says so did not create
+// anything, so the panel must not report it as done.
+function createRefusal(lines) {
+  var list = lines || []
+  for (var i = 0; i < list.length; i++) {
+    var line = trim(stripAnsi(String(list[i])))
+    if (/^Distrobox named '.*' already exists/.test(line)) return line
+  }
+  return ""
+}
+
 function capLine(line) {
   var text = String(line === undefined || line === null ? "" : line)
   return text.length > LINE_CAP ? text.substring(0, LINE_CAP - 1) + "…" : text
