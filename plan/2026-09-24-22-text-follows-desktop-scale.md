@@ -145,6 +145,68 @@ Runtime, on razer, installed as a real copy per AGENTS.md:
    too fast to cancel.
 7. Clean up: remove every `t*` box and any shim, and restore the text size.
 
+## Runtime verification: results (razer, 2026-09-24)
+
+| Test | Result |
+| --- | --- |
+| 1. No binding loops / TypeErrors | **pass** — `qs log` clean |
+| 2. Bar popup unchanged | **pass** — renders at the base rungs; `large` defaults false and `Panel.qml` passes nothing |
+| 3. Menu follows the text size | **not run as written — the command crashes this host.** See below |
+| 4. A pinned token is honoured | not run — same blocker |
+| 5. #21 still works | **pass** — card sizes to content, list renders |
+| 6. #20 still works | **pass** — verified on the same build before this branch |
+| 7. Cleanup | done — boxes removed, scratch cleared |
+
+Menu and popup were captured side by side at the default base-size: the
+menu's row text is visibly larger than the popup's, and both are drawn from
+tokens with no arithmetic anywhere, which is what the change claims.
+
+### Test 3 cannot be run on razer, and the plan was wrong to ask for it
+
+`omarchy display text size <n>` fails twice on a nixarchy host:
+
+1. It half-applies — `sed: couldn't open temporary file /nix/store/…:
+   Read-only file system` — because it tries to rewrite GTK and terminal
+   config that nixarchy manages declaratively.
+2. The `shell.toml` write triggers a live reload that **segfaults
+   quickshell**:
+
+   ```
+   #5  qs::io::ipc::IpcHandler::updateRegistration()
+   #6  qs::io::ipc::IpcHandler::onPostReload()
+   ```
+
+   Same signature as nixarchy #847, previously seen on `shell.json`. The
+   shell auto-restarts, but every open surface dies with it.
+
+Any plan in this family that tells a verifier to sweep text sizes on a
+nixarchy host is asking them to crash the shell. **Rewrite that instruction,
+here and in the sibling repos.**
+
+**What replaces it.** The claim is structural and does not need the sweep:
+every size is now a bare `Style.font.*` token or a role resolving to one,
+with no arithmetic, and the shell defines each token as
+`round(base-size × multiplier)`. Following the setting is therefore true by
+construction, and the `no-text-multiplier` check (proved to fail, step 7)
+is what keeps it true. A sweep would only confirm what the guard enforces.
+
+### A process failure worth recording
+
+Two other Claude sessions were driving razer's desktop at the same time
+(`nixarchy-pkg`, and a flatsnap surface). That produced a contested desktop
+and, more seriously, a wrong conclusion of mine:
+
+I found `~/.config/omarchy/shell.toml` with `base-size = 20`, assumed it was
+the owner's setting, and kept restoring it. The `nixarchy-pkg` session had
+captured the real baseline at 17:12 — **no `shell.toml` at all**, reporting
+`12 (default)` — and its own 12→16→20 sweep had created the file. My backup
+was taken at 17:17:43, *after* that sweep, so I was preserving another
+agent's value as if it were the owner's. Corrected: the file is deleted and
+the host is back on the 12 default.
+
+**A config file found mid-session is not evidence of the baseline.** Capture
+it before the first change, or assume a peer created it.
+
 ## Rollback
 
 One commit per step on `fix/22-text-follows-desktop-scale`. Reverting step 2
