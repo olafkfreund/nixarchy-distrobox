@@ -47,38 +47,42 @@ for `upgrade all` (the queue is already cleared by `cancel()`).
 
 ## Steps
 
-1. **`Model.js`: add `killChildrenArgv(pid)`** returning
-   `["pkill", "-P", String(pid)]`, or `null` unless `pid` is a positive
-   integer, so an unset `processId` cannot produce an argv. Comment why it is
-   by PID and never by pattern (AGENTS.md records `pkill -f` killing the
-   shell that issues it).
-   → verify by new rows in `tests/model/commands.test.js`: a valid pid, and
-   `null` for `0`, `-1`, `undefined`, `"1; id"` and a float.
+**REVISED after step 6 measured the real tree** (see the spec). Steps 1-5 below
+implemented chase; they are superseded. Chase reached level 2 of a four-level
+bash chain, so the engine survived and the fix did not work. All four levels
+share the shell's pgid, so nothing could be salvaged inside that design.
 
-2. **`DistroboxState.qml`: add `Process { id: killProcess }`**, mirroring the
-   existing fire-and-forget `copyProcess` (`:439`).
-   → verify by grep.
+Steps 1-5 are reverted and replaced by:
 
-3. **`DistroboxState.qml`: kill the descendants inside `cancel()`**, for the
-   chosen target's process, **before** its `running = false`. Carry a comment
-   stating both the ordering reason and the one-level ceiling.
-   → verify by reading: the `killProcess` line precedes `running = false` in
-   both the stream and action branches.
+1r. **`Model.js`: add `detached(argv)`**, returning `["setsid"].concat(argv)`.
+    Apply it in `startArgv`, `stopArgv`, `removeArgv`, `upgradeArgv` and
+    `createArgv` (`restartArgvs` composes stop+start, so it inherits it).
+    **Not `enterArgv`** — that runs through `omarchy-launch-tui` and
+    `distrobox enter` needs a controlling terminal, which `setsid` removes.
+    Not `listArgv`/`inspectHomesArgv`, which are never cancelled.
+    → verify by tests asserting every cancellable argv starts with `setsid`
+    and that `enterArgv` and `listArgv` do **not**.
 
-4. **`docs/usage.md`:** the troubleshooting entry at `:285-292` says `K`
-   "stops whatever is running" and "does not tidy up". Update it to say the
-   engine it started is stopped too, while keeping the existing warning that a
-   half-made box is left behind — the point of this issue is not to overclaim.
-   → verify by reading.
+2r. **`Model.js`: replace `killChildrenArgv` with `killGroupArgv(pid)`**,
+    returning `["kill", "-TERM", "--", "-<pid>"]`, `null` unless the pid is a
+    positive integer. The `--` and the leading `-` on the pid are what make it
+    a process-group signal.
+    → verify by tests, including that it is `null` for `0`/negative/non-integer
+    so a stray `kill -- -0` (which would signal the caller's own group) is
+    impossible.
 
-5. **AGENTS.md / README requirements:** `pkill` becomes an external command
-   the plugin needs. A missing command fails silently inside a QML `Process`,
-   so it is documented like the others.
-   → verify by grep for `pkill` in the requirements list.
+3r. **`DistroboxState.qml`: kill the group instead of the children.**
+    `killChildren(proc)` becomes `killGroup(proc)`. The ordering no longer
+    matters for correctness — the group survives the parent's death — but the
+    kill stays before `running = false` so the SIGTERM order is predictable.
+    Comment the dependency: this is safe **only because** Quickshell does not
+    `setsid` its own `Process` children, so our `setsid` does not fork and
+    `processId` is the session leader.
+    → verify by the runtime check below, which measures `pgid == processId`.
 
-6. **Runtime verification** on razer — see Tests.
-
-One commit per step, each citing it and `(#23)`.
+4r. **`docs/usage.md`:** the requirement becomes `setsid` and `kill`
+    (util-linux and coreutils) rather than `pkill`.
+    → verify by grep.
 
 ## Tests
 
@@ -96,11 +100,15 @@ message to the sibling sessions; a duplicated bar or a foreign menu in a
 capture means someone else is on it.
 
 1. **The measured failure is fixed.** Reuse #20's deterministic setup: shim
-   **only** the engine to `sleep 999`, leave `distrobox` real, so the tree is
-   `shell → distrobox (real) → engine (hangs)`. Record both PIDs before `K`,
-   then confirm **both are gone** after. Under #20 the grandchild survived —
-   that is the before/after, and a real image pull is useless here because it
-   finishes faster than the cancel.
+   **only** the engine to `sleep 999`, leave `distrobox` real. Enumerate the
+   **whole** subtree before `K` — it is four levels, not two — and confirm
+   **every** level is gone afterwards, the engine included. A real image pull
+   is useless here: it finishes faster than the cancel.
+
+1b. **The coupling holds.** Measure the spawned process: `pgid` must equal
+   `processId`, proving `setsid` did not fork and the group kill targets the
+   command rather than the shell. If this ever fails, prevention is unsafe and
+   the lock would release early — it is the assumption the design rests on.
 2. **Nothing else dies.** Immediately after the cancel, confirm the shell is
    still up and its other `Process` children (`inotifywait`, `wl-paste`,
    `gdbus`) are still running. This is the specific catastrophe a
