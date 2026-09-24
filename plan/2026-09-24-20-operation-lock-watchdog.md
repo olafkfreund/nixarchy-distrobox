@@ -44,8 +44,8 @@ automatically — it is logged and left for the user's `x`.
    action, nothing-running, and a blank label.
 
 2. **`Model.js`: extend `busyText`'s source strings.** The suffix is
-   `" — press o to watch, X to cancel"` for a stream and
-   `" — X to cancel"` for an action. Keep the text in `Model.js`, not QML.
+   `" — press o to watch, K to cancel"` for a stream and
+   `" — K to cancel"` for an action. Keep the text in `Model.js`, not QML.
    → verify by an assertion on the exact strings.
 
 3. **`DistroboxState.qml`: add `cancel()`.** Read `Model.cancelTarget(...)`;
@@ -102,7 +102,7 @@ automatically — it is logged and left for the user's `x`.
 
 8. **`docs/usage.md` and `README.md`:** document `K`, and state plainly that
    cancelling a `create` can leave a partial box to remove with `x`.
-   → verify by grep for `X` in both files.
+   → verify by grep for `K` in both files.
 
 9. **`manifest.json`:** add `K` to the `barWidget.description` key list.
    (Note: that description already omits `p` — issue for that separately, do
@@ -129,7 +129,7 @@ Runtime, on a nixarchy desktop, installing a real copy per AGENTS.md
 `omarchy-restart-shell`, wait for `omarchy-shell shell ping`):
 
 1. **The actual bug.** Put `sleep 999` earlier in `PATH` named as the engine,
-   press `s` on a box. Expect the refusal to read `… X to cancel`. Press `X`.
+   press `s` on a box. Expect the refusal to read `… K to cancel`. Press `K`.
    Expect the lock to release and a normal `s` to work — **without restarting
    the shell**.
 2. **The queue.** Start `upgrade all` across three `t1`/`t2`/`t3` boxes, cancel
