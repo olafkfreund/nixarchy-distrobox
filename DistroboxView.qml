@@ -36,7 +36,16 @@ FocusScope {
   // would restore whichever child held focus last, stale filter field included.
   readonly property alias keyTarget: keyCatcher
 
-  implicitHeight: column.implicitHeight
+  // The sheet is an anchors.fill overlay, so it contributes nothing to
+  // `column` -- which is what both hosts size themselves from. Without this
+  // it is clipped to a card decided by the list behind it, and is smallest
+  // with no boxes, which is when it is most needed.
+  //
+  // Math.max, so opening `?` can only grow a surface: Menu.qml keeps a fixed
+  // top edge so the card "does not jump", and shrinking on a keypress would.
+  implicitHeight: root.helpOpen
+    ? Math.max(column.implicitHeight, helpSheet.naturalHeight)
+    : column.implicitHeight
 
   // How much room is left for the one variable-height child of the current
   // mode, out of the height the host gave us.

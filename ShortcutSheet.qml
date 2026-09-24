@@ -29,6 +29,15 @@ Item {
 
   signal dismissed()
 
+  // What the sheet needs to show every group without scrolling.
+  //
+  // Safe to read from outside, which is the whole point: it is derived from
+  // the entry count, the font roles and the width, and NEVER from the height
+  // this sheet is given. `flick.height` appears in this file only for scroll
+  // clamping and for centring a short sheet, never in a height expression --
+  // so a host can size itself from this without closing a binding loop.
+  readonly property int naturalHeight: sheetColumn.implicitHeight
+
   visible: opened
   onOpenedChanged: if (opened) flick.contentY = 0
 
