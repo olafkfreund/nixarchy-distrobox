@@ -505,6 +505,21 @@ function errorText(raw) {
   return chosen ? sanitize(chosen.replace(/^Error(?: response from daemon)?:\s*/i, ""), 160) : ""
 }
 
+// What a cancel should stop right now, or null when nothing is cancellable.
+//
+// The lock is derived from the processes (`mutating`, `streaming`), never from
+// a flag, so cancelling means stopping whichever process holds it and letting
+// the existing `onExited` path release the lock. The caller must clear the
+// queues in the same step, or that exit handler starts the next command and
+// the lock never drops.
+function cancelTarget(mutating, streaming, streamTitle, pendingVerb, pendingName) {
+  if (streaming) return { process: "stream", label: trim(streamTitle) }
+  if (!mutating) return null
+  var verb = trim(pendingVerb)
+  var name = trim(pendingName)
+  return { process: "action", label: name ? verb + " " + name : verb }
+}
+
 // ---------------------------------------------------------------- settings
 
 // The menu entry point is not a bar widget, so it has no setting(). It reads

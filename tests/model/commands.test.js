@@ -166,3 +166,18 @@ test("upgradeSummary counts the boxes and names the ones that failed", () => {
      { text: "── upgraded 1 of 3 · failed: a, c", failed: ["a", "c"] })
   eq(Model.upgradeSummary([{ name: "a", code: 1 }]), { text: "── upgraded 0 of 1 · failed: a", failed: ["a"] })
 })
+
+test("cancelTarget names the process that holds the lock, or nothing", () => {
+  // A stream wins: upgrade and create hold the lock through streamProcess.
+  eq(Model.cancelTarget(true, true, "upgrade t1", "", ""), { process: "stream", label: "upgrade t1" })
+  // Streaming is enough on its own -- `mutating` already includes it.
+  eq(Model.cancelTarget(false, true, "create t2 from fedora", "", ""),
+     { process: "stream", label: "create t2 from fedora" })
+  // Otherwise the action process, labelled by the pending verb and name.
+  eq(Model.cancelTarget(true, false, "", "stopping", "t1"), { process: "action", label: "stopping t1" })
+  // "stop every box" has a verb but no single name.
+  eq(Model.cancelTarget(true, false, "", "stopping", ""), { process: "action", label: "stopping" })
+  // Nothing running: nothing to cancel, so X is a no-op rather than an error.
+  eq(Model.cancelTarget(false, false, "", "", ""), null)
+  eq(Model.cancelTarget(false, false, "upgrade t1", "stopping", "t1"), null)
+})
