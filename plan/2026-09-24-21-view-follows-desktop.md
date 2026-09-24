@@ -169,7 +169,23 @@ decision for the owner rather than something to pick unilaterally. Options:
 3. **Upstream size properties to omarchy's `PanelHero`/`ConfirmDialog`**, then
    this approach works completely. Correct long term, blocked on another repo.
 
-Steps 7-8 are held until that is decided.
+**Decision (owner, 2026-09-24): option 1, draw them locally.** So:
+
+6a. **`DistroboxView.qml`: draw the hero locally** in place of `PanelHero` --
+    same layout, same tokens, every size through `px()`. Only the icon, title,
+    meta and trailing control are used here, so the detail pill is not ported.
+    → verify by `grep PanelHero` finding only the comment.
+
+6b. **`DistroboxView.qml`: draw the confirmation locally** in place of
+    `ConfirmDialog`, including its `handleKey()` (which `keyRoot` calls while
+    `PanelKeyCatcher` is `blocked`). The selected index moves to a
+    `confirmIndex` property on the view, keeping this plugin's deliberate
+    default of **Cancel**, not the shell's confirm-button default.
+    → verify by `grep ConfirmDialog` finding only the comment, and at runtime
+    by pressing `x` and checking Cancel is preselected.
+
+Both carry a comment saying why they are drawn rather than used, and to delete
+them in favour of the shell components if omarchy ever exposes those sizes.
 
 ## Tests
 

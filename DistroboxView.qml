@@ -88,6 +88,8 @@ FocusScope {
   property string confirmMessage: ""
   property string confirmLabel: "Delete"
   property bool confirmOpen: false
+  // Which button is selected: 0 Cancel, 1 the destructive one.
+  property int confirmIndex: 0
   property bool helpOpen: false
 
   property int cursorIndex: 0
@@ -229,9 +231,10 @@ FocusScope {
     root.confirmAction = action
     root.confirmMessage = message
     root.confirmLabel = label
-    // Cancel is the default answer to every question asked here. The shell's
-    // ConfirmDialog would otherwise default to its confirm button.
-    confirmDialog.selectedIndex = 0
+    // Cancel is the default answer to every question asked here -- the
+    // shell's ConfirmDialog defaulted to its confirm button, and this kept
+    // that from being true for a delete.
+    root.confirmIndex = 0
     root.confirmOpen = true
   }
 
@@ -363,22 +366,67 @@ FocusScope {
         anchors.fill: parent
         spacing: px(Style.spacing.panelGap)
 
-        PanelHero {
-          iconSize: px(Style.font.display)
-          title: "Distrobox"
-          meta: Model.summaryText(DistroboxState.boxes, DistroboxState.reachable, DistroboxState.engine)
-          foreground: root.foreground
-          fontFamily: root.fontFamily
-          iconOpacity: DistroboxState.counts.running > 0 ? 1.0 : 0.5
+        // The shell's PanelHero, drawn here instead of used, because its
+        // title and meta font sizes are internal (PanelHero.qml:57,98) and
+        // cannot be multiplied from outside. Under the old `scale:` transform
+        // they magnified with everything else; under a layout multiplier they
+        // would stay at base size and the header would read ~26% small against
+        // the body. Same layout and the same tokens, only sized through px().
+        // If omarchy ever exposes those sizes, delete this and go back.
+        Item {
+          id: hero
+          width: parent.width
+          implicitHeight: Math.max(heroIcon.implicitHeight, heroLabels.implicitHeight, heroTrailing.implicitHeight)
 
-          iconComponent: Text {
+          Text {
+            id: heroIcon
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
             text: Model.Glyph.box
             color: DistroboxState.counts.failing > 0 ? Color.urgent : root.foreground
+            opacity: DistroboxState.counts.running > 0 ? 1.0 : 0.5
             font.family: root.fontFamily
             font.pixelSize: px(Style.font.display)
           }
 
-          trailingControl: Row {
+          Column {
+            id: heroLabels
+            anchors.left: heroIcon.right
+            anchors.leftMargin: px(Style.space(14))
+            anchors.right: parent.right
+            anchors.rightMargin: heroTrailing.width + px(Style.space(12))
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: px(Style.space(2))
+
+            Text {
+              textFormat: Text.PlainText
+              width: parent.width
+              text: "Distrobox"
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: px(Style.font.title)
+              font.bold: true
+              elide: Text.ElideRight
+            }
+
+            Text {
+              textFormat: Text.PlainText
+              width: parent.width
+              text: Model.summaryText(DistroboxState.boxes, DistroboxState.reachable, DistroboxState.engine).toUpperCase()
+              visible: text !== ""
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: px(Style.font.caption)
+              font.bold: true
+              font.letterSpacing: 1.2
+              elide: Text.ElideRight
+            }
+          }
+
+          Row {
+            id: heroTrailing
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
             spacing: px(Style.spacing.sm)
 
             PanelActionButton {
@@ -677,18 +725,127 @@ FocusScope {
       onDismissed: root.helpOpen = false
     }
 
-    ConfirmDialog {
+    // The shell's ConfirmDialog, drawn here for the same reason as the hero
+    // above: it exposes no size property, so a layout multiplier cannot reach
+    // its message or its buttons. Same layout, same tokens, sized through px().
+    Item {
       id: confirmDialog
       anchors.fill: parent
       z: 10
-      opened: root.confirmOpen
-      message: root.confirmMessage
-      confirmText: root.confirmLabel
-      background: Color.popups.background
-      foreground: root.foreground
-      fontFamily: root.fontFamily
-      onCanceled: root.closeConfirm()
-      onConfirmed: root.confirmAccepted()
+      visible: root.confirmOpen
+
+      // Called by keyRoot, which gets the key because PanelKeyCatcher goes
+      // `blocked` while a question is open.
+      function handleKey(event) {
+        if (!root.confirmOpen) return false
+        if (event.key === Qt.Key_Escape) { root.closeConfirm(); return true }
+        if (event.key === Qt.Key_Left || event.key === Qt.Key_Right
+            || event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+          root.confirmIndex = root.confirmIndex === 0 ? 1 : 0
+          return true
+        }
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+          if (root.confirmIndex === 0) root.closeConfirm()
+          else root.confirmAccepted()
+          return true
+        }
+        return false
+      }
+
+      Rectangle {
+        anchors.fill: parent
+        color: Style.withAlpha(Color.background, 0.7)
+
+        MouseArea { anchors.fill: parent; onClicked: root.closeConfirm() }
+
+        BorderSurface {
+          id: confirmCard
+          width: Math.min(parent.width - px(Style.space(32)), px(Style.space(370)))
+          // Grows with the wrapped message, so a narrow host does not squeeze
+          // the text into the buttons.
+          height: confirmCard.contentTopInset + confirmCard.contentBottomInset
+                  + confirmMessageText.implicitHeight + px(Style.space(20)) + px(Style.space(34))
+          anchors.centerIn: parent
+          color: Color.popups.background
+          borderSpec: Border.flat(Color.accent, Style.normalBorderWidth)
+          padding: px(Style.space(18))
+          radius: Style.cornerRadius
+
+          MouseArea { anchors.fill: parent; onClicked: {} }
+
+          Item {
+            anchors.fill: parent
+            anchors.topMargin: confirmCard.contentTopInset
+            anchors.rightMargin: confirmCard.contentRightInset
+            anchors.bottomMargin: confirmCard.contentBottomInset
+            anchors.leftMargin: confirmCard.contentLeftInset
+
+            Text {
+              id: confirmMessageText
+              textFormat: Text.PlainText
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              text: root.confirmMessage
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: px(Style.font.title)
+              wrapMode: Text.WordWrap
+            }
+
+            Row {
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              spacing: px(Style.space(10))
+
+              Repeater {
+                model: ["Cancel", root.confirmLabel]
+
+                BorderSurface {
+                  required property int index
+                  required property string modelData
+
+                  readonly property bool selected: root.confirmIndex === index
+                  readonly property bool destructive: index === 1
+
+                  width: px(Style.space(88))
+                  height: px(Style.space(34))
+                  color: selected
+                    ? (destructive ? Style.withAlpha(Color.urgent, 0.22)
+                                   : Style.withAlpha(root.foreground, 0.08))
+                    : "transparent"
+                  borderSpec: Border.flat(destructive
+                    ? (selected ? Color.urgent : Style.withAlpha(Color.urgent, 0.56))
+                    : (selected ? Color.accent : Style.withAlpha(root.foreground, 0.38)),
+                    Style.normalBorderWidth)
+                  radius: 0
+
+                  Text {
+                    textFormat: Text.PlainText
+                    anchors.centerIn: parent
+                    text: modelData
+                    color: destructive ? (selected ? Color.urgent : root.foreground)
+                                       : (selected ? Color.accent : root.foreground)
+                    font.family: root.fontFamily
+                    font.pixelSize: px(Style.font.caption)
+                  }
+
+                  MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onEntered: root.confirmIndex = index
+                    onClicked: {
+                      if (index === 0) root.closeConfirm()
+                      else root.confirmAccepted()
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
