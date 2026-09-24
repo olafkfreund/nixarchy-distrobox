@@ -13,6 +13,17 @@ FocusScope {
 
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
+
+  // The menu draws everything larger, because it is read from further away.
+  // A layout-time multiplier, never a `scale:` transform: a transform
+  // magnifies glyphs after they are laid out, so wrapping and eliding are
+  // computed at the wrong size and then stretched. nixarchy-pkg and
+  // nixarchy-flatsnap do it this way too.
+  //
+  // 1.0 from the bar popup, so Math.round(n * 1.0) === n leaves it untouched.
+  property real textScale: 1.0
+  function px(base) { return Math.round(base * root.textScale) }
+
   readonly property color dim: Qt.darker(foreground, 1.5)
 
   // KeyboardPanel focuses this directly: handing it the FocusScope instead
@@ -374,6 +385,7 @@ FocusScope {
 
         CreateForm {
           id: createForm
+          textScale: root.textScale
           visible: root.mode === "form"
           width: parent.width
           height: visible ? implicitHeight : 0
@@ -387,6 +399,7 @@ FocusScope {
 
         LogView {
           id: logView
+          textScale: root.textScale
           visible: root.mode === "log"
           width: parent.width
           height: visible ? implicitHeight : 0
@@ -406,6 +419,7 @@ FocusScope {
         // word blank, since nothing ran.
         LogView {
           id: snippetView
+          textScale: root.textScale
           visible: root.mode === "snippet"
           width: parent.width
           height: visible ? implicitHeight : 0
@@ -446,6 +460,7 @@ FocusScope {
 
         BoxList {
           id: list
+          textScale: root.textScale
           visible: root.mode === "list"
           width: parent.width
           rows: root.rows
@@ -609,6 +624,7 @@ FocusScope {
 
     ShortcutSheet {
       id: helpSheet
+      textScale: root.textScale
       anchors.fill: parent
       z: 5
       opened: root.helpOpen

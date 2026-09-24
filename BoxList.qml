@@ -22,6 +22,12 @@ Item {
 
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
+
+  // Set by the host: the menu passes 1.45, the bar popup leaves it 1.0.
+  // A layout-time multiplier, never a `scale:` transform -- see DistroboxView.
+  property real textScale: 1.0
+  function px(base) { return Math.round(base * root.textScale) }
+
   property int maxHeight: Style.space(520)
 
   readonly property color dim: Qt.darker(foreground, 1.5)
