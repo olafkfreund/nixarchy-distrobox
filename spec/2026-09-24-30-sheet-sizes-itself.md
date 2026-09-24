@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 30
 intent: intent/2026-09-24-30-sheet-sizes-itself.md
 ---
