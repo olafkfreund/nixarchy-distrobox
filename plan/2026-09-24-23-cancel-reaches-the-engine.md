@@ -125,6 +125,45 @@ capture means someone else is on it.
 7. Clean up: remove every `t*` box and the shim, and leave no `shell.toml`
    behind — that file does not exist on this host's baseline.
 
+## Runtime verification: results (razer, 2026-09-24)
+
+| Test | Result |
+| --- | --- |
+| 1. The whole subtree dies | **pass** — see below |
+| 1b. `pgid == processId` (the assumption) | **pass** — `TOP=2098979 pgid=2098979`, distinct from the shell's `3083161` |
+| 2. Nothing else dies | **pass** — shell pings `ok`, its helpers went 6 → 8, none lost |
+| 3. #20 does not regress | **pass** — `mutating:false`, notice reads `starting t1 cancelled`, not "failed" |
+| 5. Log clean | **pass** — 0 binding loops or TypeErrors |
+
+Deterministic setup, engine shimmed to `sleep 999` with `distrobox` left real:
+
+```
+TOP=2098979  pgid=2098979   |  shell-pgid=3083161
+subtree: 2098982 2098996 2098997          <- four levels
+
+after K:  2098979 gone
+          2098982 gone
+          2098996 gone
+          2098997 gone                    <- the engine
+```
+
+Under the chase implementation the engine survived; under prevention every
+level dies. That is the before/after this issue exists for.
+
+### Gotchas for anyone re-running this
+
+- **The shim is fleet-wide.** `~/bin/podman` is position 2 on the *shell's*
+  PATH, so it hits every plugin — `nixarchy-podman`'s `podman ps` was found
+  sitting as a shell child mid-test.
+- **It also wedges our own listing**, and `listProcess` guards on
+  `if (listProcess.running) return`, so **one** hung list blocks every future
+  refresh until that process dies. The box list then reads empty, `known()`
+  refuses the mutation, and `s` silently does nothing. Populate the list with
+  the real engine **first**, then install the shim.
+- **Run the whole sequence in one ssh invocation.** The menu layer closed
+  between separate invocations more than once, and `guard` then aborts.
+- Clean up hung processes, not just the shim.
+
 ## Rollback
 
 One commit per step on `fix/23-cancel-reaches-the-engine`. Reverting step 3
