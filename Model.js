@@ -46,6 +46,7 @@ var SHORTCUTS = [
   { group: "All boxes", keys: "U", text: "Upgrade every box" },
   { group: "All boxes", keys: "S", text: "Stop every running box" },
 
+  { group: "Panel", keys: "K", text: "Cancel the running operation and free the lock" },
   { group: "Panel", keys: "o", text: "Show the create / upgrade log" },
   { group: "Panel", keys: "u", text: "Refresh now" },
   { group: "Panel", keys: "?", text: "Show this list" },
@@ -512,7 +513,7 @@ function busyText(streaming, streamTitle, pendingVerb, pendingName) {
   var target = cancelTarget(true, streaming, streamTitle, pendingVerb, pendingName)
   if (!target) return ""
   return "Busy: " + target.label
-    + (target.process === "stream" ? " — press o to watch, X to cancel" : " — X to cancel")
+    + (target.process === "stream" ? " — press o to watch, K to cancel" : " — K to cancel")
 }
 
 // What a cancel should stop right now, or null when nothing is cancellable.

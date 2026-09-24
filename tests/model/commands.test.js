@@ -183,7 +183,7 @@ test("cancelTarget names the process that holds the lock, or nothing", () => {
 })
 
 test("busyText names the operation and the key that gets the lock back", () => {
-  eq(Model.busyText(true, "upgrade t1", "", ""), "Busy: upgrade t1 — press o to watch, X to cancel")
-  eq(Model.busyText(false, "", "stopping", "t1"), "Busy: stopping t1 — X to cancel")
-  eq(Model.busyText(false, "", "stopping", ""), "Busy: stopping — X to cancel")
+  eq(Model.busyText(true, "upgrade t1", "", ""), "Busy: upgrade t1 — press o to watch, K to cancel")
+  eq(Model.busyText(false, "", "stopping", "t1"), "Busy: stopping t1 — K to cancel")
+  eq(Model.busyText(false, "", "stopping", ""), "Busy: stopping — K to cancel")
 })

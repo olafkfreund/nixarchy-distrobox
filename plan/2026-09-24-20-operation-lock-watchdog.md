@@ -28,8 +28,8 @@ never guesses and fully restores recoverability.
 the derived lock is a hard requirement. The queues must be cleared in the same
 step or `onExited` starts the next command.
 
-**Approved details.** Key is `X`, in list mode and log mode. Cancel is not
-confirmed. `busyText()` gains `, X to cancel` so the affordance appears exactly
+**Approved details.** Key is `K` (see the deviation at step 5), in list mode and log mode. Cancel is not
+confirmed. `busyText()` gains `, K to cancel` so the affordance appears exactly
 when the user hits the lock. A partial `create` is **not** cleaned up
 automatically — it is logged and left for the user's `x`.
 
@@ -73,27 +73,38 @@ automatically — it is logged and left for the user's `x`.
    error text when it was set, and the stream handler returns before
    `upgradeAllStep`.
 
-5. **`DistroboxView.qml`: bind `X` in `handleTextKey`** (`:249`), before the
+   **Deviation: the key is `K`, not `X`.** Verified against the shipped
+   `Ui/PanelKeyCatcher.qml` in omarchy 4.0.4: line 78 is
+   `if (event.text === "x" || event.text === "X") { deleteRequested() }`, so
+   the catcher consumes **both** cases before `textKey` is reached. Binding `X`
+   would have been dead code that also opened a delete-box confirmation — the
+   dangerous direction. The same file matches `"j"`, `"k"`, `"l"`, `"h"`
+   lowercase only (`:59-68`), so `"K"` passes through to `textKey`. It is also
+   the safest mis-shift available: a missed Shift is a cursor move, and `K`
+   for kill follows htop and vim. Steps 5-8 below therefore say `K`.
+
+5. **`DistroboxView.qml`: bind `K` in `handleTextKey`** (`:249`), before the
    `cursorActive` guard so it works with no cursor:
-   `if (key === "X") { DistroboxState.cancel(); return }`.
-   → verify by grep that `X` appears in no other branch.
+   `if (key === "K") { DistroboxState.cancel(); return }`.
+   → verify by grep that `K` appears in no other branch.
 
 6. **`LogView.qml`: add a `cancelRequested()` signal** and
-   `else if (key === Qt.Key_X && event.modifiers & Qt.ShiftModifier)` in
+   `else if (key === Qt.Key_K && event.modifiers & Qt.ShiftModifier)` in
    `Keys.onPressed` (`:44`); wire it in `DistroboxView.qml` to
-   `DistroboxState.cancel()`.
-   → verify by pressing `X` in the log view at runtime.
+   `DistroboxState.cancel()`. Only the stream log gets the handler — the
+   promote-snippet `LogView` runs no process, so there is nothing to cancel.
+   → verify by pressing `K` in the log view at runtime.
 
-7. **`Model.js`: add `X` to `SHORTCUTS`** in the Box group so `ShortcutSheet`
+7. **`Model.js`: add `K` to `SHORTCUTS`** in the Box group so `ShortcutSheet`
    and `?` list it without further change (the sheet renders
    `Model.shortcutGroups()` and cannot drift).
    → verify by opening `?` at runtime.
 
-8. **`docs/usage.md` and `README.md`:** document `X`, and state plainly that
+8. **`docs/usage.md` and `README.md`:** document `K`, and state plainly that
    cancelling a `create` can leave a partial box to remove with `x`.
    → verify by grep for `X` in both files.
 
-9. **`manifest.json`:** add `X` to the `barWidget.description` key list.
+9. **`manifest.json`:** add `K` to the `barWidget.description` key list.
    (Note: that description already omits `p` — issue for that separately, do
    not fix it here.)
    → verify by `jq -r '.barWidget.description' manifest.json`.
@@ -130,7 +141,7 @@ Runtime, on a nixarchy desktop, installing a real copy per AGENTS.md
    do not implement it here.
 4. **Both surfaces.** Cancel from the bar popup, confirm the menu is unlocked,
    and the reverse. Confirms the singleton is genuinely shared.
-5. **Nothing running.** Press `X` with no operation in flight; expect nothing to
+5. **Nothing running.** Press `K` with no operation in flight; expect nothing to
    happen and no error text.
 6. `qs log -i <instance>` clean of warnings.
 

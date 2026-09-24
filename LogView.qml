@@ -22,6 +22,7 @@ FocusScope {
   property bool follow: true
 
   signal backRequested()
+  signal cancelRequested()
 
   implicitHeight: header.implicitHeight + Style.spacing.md + logList.height + Style.spacing.md + hint.implicitHeight
 
@@ -44,6 +45,7 @@ FocusScope {
   Keys.onPressed: function(event) {
     var key = event.key
     if (key === Qt.Key_Escape) root.backRequested()
+    else if (key === Qt.Key_K && (event.modifiers & Qt.ShiftModifier)) root.cancelRequested()
     else if (key === Qt.Key_J || key === Qt.Key_Down) root.scroll(1)
     else if (key === Qt.Key_K || key === Qt.Key_Up) root.scroll(-1)
     else if (key === Qt.Key_PageDown) root.scroll(8)
