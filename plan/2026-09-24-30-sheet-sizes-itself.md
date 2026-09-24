@@ -95,6 +95,31 @@ ssh invocation; the menu layer has closed between separate ones.
 7. Clean up: no boxes, no shims, no `shell.toml` (absent on this host's
    baseline).
 
+## Runtime verification: results (razer, 2026-09-24)
+
+| Test | Result |
+| --- | --- |
+| 1. No binding-loop warnings | **pass — 0**, on both surfaces in every mode. The required outcome, and the one a screenshot could not have shown |
+| 2. Menu, 0 boxes | **pass** — every group (MOVE → LOG) visible, where it was two rows before |
+| 3. Popup, 0 boxes | **pass** — the full sheet including the footer hint, still anchored under the glyph and still reading as a popup rather than a takeover |
+| 4. Many boxes | **pass** — with 5 boxes `?` grew the card and did not shrink or clip it |
+| 5. Closing `?` restores | **pass** — back to the list's own height with all 5 rows |
+| 6. Text size | not run, by design — the command segfaults the shell here |
+
+### Decision 3 stands
+
+The plan allowed step 3 to send the spec back if the grown popup looked
+absurd. It does not: it fills roughly two thirds of the screen height at the
+smaller `caption` token, stays under the glyph, and is bounded by
+`availableCardHeight` as predicted. No revision needed.
+
+### Observed, and accepted
+
+With 5 boxes the card grows on `?` and returns on `esc` — visible motion that
+did not exist before. `Math.max` only governs the sheet-open state never being
+*smaller* than the list; returning to the list's height on close is correct.
+Flagged as a risk in the spec, and it looks fine in practice.
+
 ## Rollback
 
 One commit per step. Reverting step 2 alone restores today's behaviour exactly
