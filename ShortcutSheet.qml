@@ -127,7 +127,9 @@ Item {
                   //
                   // Not elided on purpose: "tab  ↓ / shift+ta…" tells nobody
                   // what to press, which is worse than one ragged row.
-                  width: Math.max(Style.space(90), implicitWidth)
+                  // + the gutter, or a row that outgrows the floor leaves the
+                  // description butted straight against its last key.
+                  width: Math.max(Style.space(90), implicitWidth + Style.spacing.md)
                   text: modelData.keys
                   textFormat: Text.PlainText
                   color: Color.accent

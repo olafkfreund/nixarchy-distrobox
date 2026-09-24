@@ -40,6 +40,15 @@ against a `Style.space(680)` card, but it is the limit.
    → verify by grep, and by `nix flake check` still passing
    `no-text-multiplier` (this edits a sizing line).
 
+   **Deviation, found by looking at the result.** `Math.max(floor,
+   implicitWidth)` removed the overlap — the keys render complete — but left
+   the description butted straight against the last key, because the only
+   space between them was `entryText`'s `leftMargin`, which is small. A row
+   that outgrows the floor needs the gutter too, so the width is
+   `Math.max(Style.space(90), implicitWidth + Style.spacing.md)`. Folding it
+   into the width rather than raising `leftMargin` keeps every short row's
+   gutter exactly as it is.
+
 2. **Runtime verification** on razer — see Tests.
 
 Two commits, each citing the step and `(#24)`. No `Model.js` change, so no
@@ -73,6 +82,28 @@ invocation, because the menu layer has closed between separate ones.
 4. `qs log` clean of binding loops and TypeErrors.
 5. Clean up: no boxes, no shim, no `shell.toml` (that file does not exist on
    this host's baseline).
+
+## Runtime verification: results (razer, 2026-09-24)
+
+| Test | Result |
+| --- | --- |
+| 1. The bug is fixed | **pass** — `tab  ↓ / shift+tab  ↑ Next / previous field`, keys complete, clear gap, nothing overlapping |
+| 2. Short rows did not move | **pass** — every other group's description still starts at the same x; the token floor is intact |
+| 3. A second font size | **pass** — the bar popup renders the same sheet at the smaller `caption` token, with the same gap |
+| 4. Log clean | **pass** — 0 binding loops or TypeErrors |
+| 5. Cleanup | done |
+
+Before, for the record: `tab  ↓ / shift+taNext / previous field` — the keys
+were cut off *and* painted over.
+
+### Noticed while verifying, NOT fixed here
+
+With an empty or very short box list the `?` sheet is clipped to the card,
+which is sized from `view.implicitHeight`. At 0 boxes the card is a few rows
+tall and the sheet shows only its first group; the sheet scrolls, so nothing
+is unreachable, but it is cramped. `ShortcutSheet` is an `anchors.fill`
+overlay, so it never contributes to `implicitHeight`. Pre-existing and
+unrelated to this change — it needs its own issue.
 
 ## Rollback
 
