@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "nixarchy.distrobox",
   "name": "Distrobox",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "olafkfreund",
   "license": "MIT",
   "description": "Distrobox for Omarchy, on the bar and on a key: every box with its image and home, enter one in a terminal, start, stop, restart, upgrade or delete it, and create a new one from a form that knows every distrobox create flag. Create and upgrade stream their log into the panel.",
