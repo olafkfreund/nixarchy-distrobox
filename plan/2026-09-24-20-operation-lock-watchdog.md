@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 20
 spec: spec/2026-09-24-20-operation-lock-watchdog.md
 ---
