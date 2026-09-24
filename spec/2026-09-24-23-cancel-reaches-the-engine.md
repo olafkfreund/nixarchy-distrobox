@@ -8,8 +8,52 @@ intent: intent/2026-09-24-23-cancel-reaches-the-engine.md
 
 ## Design
 
-**Decided at intent approval: chase, not prevent.** The descendants are killed
-at cancel time; nothing changes about how commands are spawned.
+**REVISED 2026-09-24, after measurement: prevent, not chase.** The original
+decision was chase, on my recommendation, and it was wrong.
+
+Chase was recommended partly on the grounds that the tree is shallow
+(`distrobox create` → `podman pull`). This spec required verification to
+"actually inspect the tree rather than assume two levels". It did, and the
+assumption was false. `distrobox` is a chain of bash scripts, so the real
+tree is **four levels**:
+
+```
+1857850  bash (distrobox)   <- SIGTERM from running = false
+  1857853  bash             <- pkill -P reaches only this
+    1857872  bash
+      1857873  the engine   <- SURVIVES
+```
+
+`pkill -P` is one level, so the engine survives exactly as before: the chase
+fix **does not fix the bug at all**, and is not even a partial improvement.
+
+There is no rescue inside the chase design. Every level was measured and
+**all four share the shell's `pgid=3083161`**, so no group or session anchor
+exists anywhere to kill against; any group kill would hit the shell.
+
+Prevention was measured on a deliberately four-deep tree and works:
+
+| Check | Result |
+| --- | --- |
+| `setsid` top-level pgid | **1860502**, distinct from the invoking shell's **1860499** |
+| `kill -TERM -<pgid>` | the nested process died, 1 → 0 |
+
+One prefix at spawn, one kill at cancel, correct at any depth, and it cannot
+hit the shell because the pgid is genuinely separate.
+
+**The coupling risk that made me reject prevention is real but is the lesser
+evil.** If Quickshell ever starts `setsid`-ing its own `Process` children,
+our `setsid` would fork, `processId` would become a wrapper that exits at
+once, and the lock would release while work continues. That is a *future,
+conditional* failure; chase is a *present, unconditional* one. A fix that
+does not work is worse than a fix with a documented dependency, and the
+dependency is checkable on hardware (`pgid == processId`).
+
+**Scope:** the prefix goes on the cancellable mutations only —
+`start`, `stop`, `remove`, `restart`, `upgrade`, `create`. **Not `enter`**:
+`enterArgv` runs through `omarchy-launch-tui`, and `distrobox enter` needs a
+controlling terminal, which `setsid` would take away. Not listing or
+inspect, which are never cancelled.
 
 ### Why not prevention, recorded so it is not revisited by accident
 
