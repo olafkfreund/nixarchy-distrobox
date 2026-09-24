@@ -754,7 +754,7 @@ FocusScope {
 
       Rectangle {
         anchors.fill: parent
-        color: Style.withAlpha(Color.background, 0.7)
+        color: Util.alpha(Color.background, 0.7)
 
         MouseArea { anchors.fill: parent; onClicked: root.closeConfirm() }
 
@@ -811,12 +811,12 @@ FocusScope {
                   width: px(Style.space(88))
                   height: px(Style.space(34))
                   color: selected
-                    ? (destructive ? Style.withAlpha(Color.urgent, 0.22)
-                                   : Style.withAlpha(root.foreground, 0.08))
+                    ? (destructive ? Util.alpha(Color.urgent, 0.22)
+                                   : Util.alpha(root.foreground, 0.08))
                     : "transparent"
                   borderSpec: Border.flat(destructive
-                    ? (selected ? Color.urgent : Style.withAlpha(Color.urgent, 0.56))
-                    : (selected ? Color.accent : Style.withAlpha(root.foreground, 0.38)),
+                    ? (selected ? Color.urgent : Util.alpha(Color.urgent, 0.56))
+                    : (selected ? Color.accent : Util.alpha(root.foreground, 0.38)),
                     Style.normalBorderWidth)
                   radius: 0
 

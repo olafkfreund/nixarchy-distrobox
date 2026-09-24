@@ -224,6 +224,43 @@ Runtime, on a nixarchy desktop, installing a real copy per AGENTS.md:
 
 Clean up any `t*` boxes with `distrobox rm`.
 
+## Runtime verification: results (razer, 2026-09-24)
+
+razer, one 1920x1080 output, plugin installed as a real copy per AGENTS.md.
+
+| Test | Result |
+| --- | --- |
+| 1. No binding-loop warnings | **pass** — `qs log` clean of binding loops, TypeErrors and NaN across list, form, log and `?` |
+| 2. Bar popup unchanged | **pass** — renders compact at base size; `textScale` defaults to 1.0 and `round(n * 1.0) === n` |
+| 3. Menu follows the screen | **pass** — with 8 boxes the card grew to the `panel.height * 0.8` clamp (bottom ~990 of 1080) instead of stopping at the old fixed `Style.space(520)`; the list scrolls and the cursor reaches the last row, which was the intent's named failure |
+| 4. Reflow | **pass** — a 54-character box name lays out at the width it is drawn at |
+| 5. Theme text size | not run — needs the `omarchy display text size` setting changed on a machine in use |
+| 6. Blurriness | **moot** — there is no transform left to soften anything, so the open question is resolved by removal rather than by measurement. Nothing anywhere should now assert that the transform blurred text: it was never measured. |
+| 7. Docs | no change needed — nothing user-visible changed in keys, fields or settings |
+
+### Defects found by running it, fixed here
+
+1. **`Style.withAlpha` does not exist.** Six `TypeError: Property 'withAlpha'
+   ... is not a function` warnings. It was read from the *omamail plugin's
+   bundled copy* of `Style.qml` rather than the installed shell's. The real
+   helper is `Util.alpha(c, opacity)` in `qs.Commons`, which is what
+   `ConfirmDialog` itself uses. **Verify against the running shell
+   (`$OMARCHY_PATH/shell`), never against another plugin's vendored copy.**
+
+2. **`Style.font.family` must not be multiplied.** The mechanical wrap caught
+   it along with the numeric tokens, and `Math.round("JetBrains Mono" * 1.0)`
+   is `NaN`, which would have broken the font everywhere. Only numeric tokens
+   are wrapped; the five `fontFamily` lines are not.
+
+### Pre-existing defect noticed, deliberately NOT fixed here
+
+`ShortcutSheet.qml:117` gives the key column a fixed `width` with no `elide`
+and no `clip`, so a long key string such as `tab  ↓ / shift+tab  ↑` paints
+past it and collides with its description. Confirmed present on `main`
+(`git show main:ShortcutSheet.qml:111`) — this branch only wrapped that line
+in `px()`, so it is not a regression and it is out of scope for #21. Filed
+separately.
+
 ## Rollback
 
 One commit per step on `fix/21-view-follows-desktop`. Step 2 is the large one;
