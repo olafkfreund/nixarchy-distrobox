@@ -415,7 +415,11 @@ Singleton {
       if (root.streamAll && !wasCancelled) { root.upgradeAllStep(code); return }
       root.clearBusyNotice()
       if (wasCancelled) {
-        root.streamExit = code
+        // -1, not the SIGTERM code: LogView renders any code > 0 as a red
+        // "failed", and a cancel the user asked for is not a failure. Same
+        // reasoning as isStopCode() for a stopped box. The log's "── cancelled"
+        // line and the notice say what happened.
+        root.streamExit = -1
         if (root.active || root.background) root.refresh()
         return
       }

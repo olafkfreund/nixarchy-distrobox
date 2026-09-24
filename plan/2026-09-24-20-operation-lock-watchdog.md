@@ -147,6 +147,65 @@ Runtime, on a nixarchy desktop, installing a real copy per AGENTS.md
 
 Clean up with `distrobox rm` for every `t*` box.
 
+## Runtime verification: results (razer, 2026-09-24)
+
+Run on razer (one 1920x1080 output, podman 5.8.7, distrobox 1.8.2.5), plugin
+installed as a real copy per AGENTS.md. Shell log clean of distrobox warnings
+and binding loops throughout.
+
+| Test | Result |
+| --- | --- |
+| 1. Wedged engine, cancel from the list | **pass** — `Busy: starting t1 — K to cancel` shown; `K` released the lock (`mutating:false`, `lastError:"starting t1 cancelled"`) and a fresh `s` was accepted, with no shell restart |
+| 2. Queue does not advance | **pass** — `create` cancelled mid-stream did not start a queued command; `mutating` and `streaming` both false and stayed false |
+| 3. SIGTERM reaches the engine child | **FAIL — see below** |
+| 4. Both surfaces share the lock | **pass** — singleton confirmed via `status` (`bars:1, views:1`) |
+| 5. `K` with nothing running | **pass** — no-op, `lastError` stayed empty |
+
+### Test 3: the orphan risk is REAL, and confirmed
+
+Made deterministic by shimming **only** `podman` to `sleep 999` and leaving
+`distrobox` real, giving the exact tree the spec worried about:
+
+```
+shell -> 1221103 distrobox create (direct child)
+            -> 1221127 podman (grandchild)
+```
+
+After `K`:
+
+```
+DIRECT CHILD 1221103: GONE        <- SIGTERM killed it
+GRANDCHILD   1221127: sleep 999   <- SURVIVED
+```
+
+So `running = false` kills only the direct child. **The lock releases — the
+shipped fix works — but the engine may keep pulling in the background.** This
+is exactly the limitation the spec named and told us to measure rather than
+assume. It does not block this change; it is a follow-up for a `processId`-based
+process-group escalation, to be filed separately.
+
+(An earlier attempt using a real `--pull` of a 2.2 GB image did **not**
+reproduce it: the pull reused cached layers and finished in under six seconds,
+so `K` had nothing to cancel. Three such races produced false readings before
+the shim made it deterministic — worth knowing for anyone re-running this.)
+
+### Two defects found by running it, fixed here
+
+1. **`K` did nothing in the log view.** It worked in the list and not in the
+   log. The list matches `event.text === "K"` (via `PanelKeyCatcher.textKey`);
+   the log matched `Qt.Key_K && (modifiers & ShiftModifier)`, and that bitmask
+   never matched under `wtype`. Fixed by matching `event.text === "K"` in
+   `LogView` too — which is also the idiom `PanelKeyCatcher` itself uses for
+   `"x"`/`"X"`, and does not depend on a modifier bitmask that varies by input
+   method and keymap.
+
+2. **A cancel presented itself as a failure.** The log header renders any
+   `exitCode > 0` as a red "failed", and SIGTERM is non-zero, so a deliberate
+   cancel showed `failed` even though the log line and the notice both said
+   "cancelled". Fixed by storing `streamExit = -1` for a cancel — the same
+   reasoning as `isStopCode()`, which already treats SIGTERM on a box as "being
+   stopped, not failed".
+
 ## Rollback
 
 Each step is its own commit, so `git revert` of any one is safe. The branch is
