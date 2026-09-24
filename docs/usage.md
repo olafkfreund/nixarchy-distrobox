@@ -278,8 +278,19 @@ see why. The reason names the key or value the plugin refuses (see
 list updates when the file is saved. A file larger than 64 KB lists nothing, and
 a section longer than 256 lines once its includes are added is greyed out.
 
-**"Busy: … — press o to watch".** Only one change runs at a time, across the
-popup and the menu. Wait for it to finish, or press `o` to watch it.
+**"Busy: … — press o to watch, K to cancel".** Only one change runs at a time,
+across the popup and the menu. Wait for it to finish, press `o` to watch it, or
+press `K` to cancel it and get the panel back.
+
+**Nothing works and every key says "Busy".** A command that never finishes —
+a container engine that has stopped responding, or a first image pull that has
+stalled — used to hold the panel until you restarted the shell. Press `K`, in
+the list or in the log. It stops whatever is running and frees the panel.
+
+`K` cancels; it does not tidy up. A cancelled `create` can leave a
+half-made box behind, and a cancelled `U` leaves the boxes it had not reached
+alone. Both show up in the list as they really are, and a half-made box is an
+ordinary box you delete with `x`.
 
 **A running create or upgrade stopped.** Restarting or reloading the shell ends
 it, along with the `distrobox` process it was running. Start it again. A box

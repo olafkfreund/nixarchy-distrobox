@@ -17,7 +17,7 @@
   },
   "barWidget": {
     "displayName": "Distrobox",
-    "description": "Your distrobox containers, running ones first. Driven from the keyboard: enter opens a terminal inside the box, s starts or stops it, r restarts, g upgrades, x deletes, c creates a new box, U upgrades every box, S stops every box, y copies the name, / filters, u refreshes, o shows the running log, and ? lists the lot inside the panel.",
+    "description": "Your distrobox containers, running ones first. Driven from the keyboard: enter opens a terminal inside the box, s starts or stops it, r restarts, g upgrades, x deletes, c creates a new box, U upgrades every box, S stops every box, y copies the name, / filters, u refreshes, o shows the running log, K cancels a running operation, and ? lists the lot inside the panel.",
     "category": "System",
     "allowMultiple": false,
     "defaultSection": "right",
