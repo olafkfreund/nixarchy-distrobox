@@ -94,10 +94,27 @@ Anyone opening the full-screen menu, most visibly on a monitor far from
 `Panel.qml` shares the constant-width shape and should be considered in the same
 pass. No change to `Model.js` or to any command path.
 
-`nixarchy-microvm` and `nixarchy-podman` have the identical defect but are
-separate repositories with their own artifact gates. Podman is already tracked by
-its own maintainer as that repo's issue #22. **This work must not edit either
-repository**; a follow-up issue against each is the correct handoff.
+`nixarchy-microvm` and `nixarchy-podman` carry the same `uiScale` transform, but
+their sizing is **not** in the same state and a distrobox-shaped patch does not
+transfer:
+
+- `nixarchy-microvm` does have the discarded-height shape — `MicrovmView.qml:22`
+  is `implicitHeight: column.implicitHeight` with `root.height` never read, and
+  `VmList.maxHeight` is declared and never assigned.
+- `nixarchy-podman` does **not**. Its height plumbing is live: `Menu.qml:162`
+  derives `listMaxHeight` from `panel.height * 0.85`, `PodmanView.qml:373` passes
+  it down, and `ResourceList.qml:89` consumes it. Its defect is narrower — the
+  screen-derived value is wrapped in `Math.min(Style.space(560), …)`, so a
+  constant wins past a certain screen height. Read then clamped, not ignored.
+
+So for podman the transform is an independent defect (the reflow argument) and
+the cap is a second one: two fixes, not one root cause. Carrying that distinction
+matters, or someone lands a distrobox-shaped patch there and wonders why the
+reflow remains.
+
+Both are separate repositories with their own artifact gates — podman is already
+tracked by its own maintainer as that repo's issue #22. **This work must not edit
+either repository**; a follow-up issue against each is the correct handoff.
 
 ## Constraints
 
