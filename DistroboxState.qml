@@ -71,6 +71,12 @@ Singleton {
   property var queue: []
   readonly property bool mutating: actionProcess.running || streaming || queue.length > 0
 
+  // Set by cancel(), consumed by the very next exit handler. SIGTERM gives a
+  // non-zero code, so without this a deliberate cancel would report itself as
+  // "failed (exit 15)". It cannot wedge anything: the lock stays derived, and
+  // whichever exit runs next clears this whether it set it or not.
+  property bool cancelling: false
+
   // --------------------------------------------------------------- stream
 
   property var log: []
@@ -142,8 +148,32 @@ Singleton {
   }
 
   function busyText() {
-    if (root.streaming) return "Busy: " + root.streamTitle + " — press o to watch"
-    return "Busy: " + root.pendingVerb + (root.pendingName ? " " + root.pendingName : "") + " — wait for it to finish"
+    return Model.busyText(root.streaming, root.streamTitle, root.pendingVerb, root.pendingName)
+  }
+
+  // The way out of a command that never exits. Process has no kill(): setting
+  // `running` false sends SIGTERM, `exited` fires, and the lock releases
+  // through the derived property, so nothing new has to be unset afterwards.
+  //
+  // The queues are cleared FIRST. onExited starts the next command while one
+  // is waiting, so cancelling with a queue still loaded would hand the lock
+  // straight to the next box instead of giving it back.
+  function cancel() {
+    var target = Model.cancelTarget(root.mutating, root.streaming, root.streamTitle,
+                                    root.pendingVerb, root.pendingName)
+    if (!target) return false
+    root.cancelling = true
+    root.queue = []
+    root.streamQueue = []
+    root.streamAll = false
+    if (target.process === "stream") {
+      root.appendLog("── cancelled")
+      streamProcess.running = false
+    } else {
+      actionProcess.running = false
+    }
+    root.lastError = target.label + " cancelled"
+    return true
   }
 
   // Only boxes the selected engine listed. `distrobox enter` on a name it
@@ -350,8 +380,10 @@ Singleton {
     stderr: StdioCollector { id: actionErr; waitForEnd: true }
 
     onExited: function(code) {
+      var cancelled = root.cancelling
+      root.cancelling = false
       if (root.queue.length === 0 || code !== 0) root.clearBusyNotice()
-      if (code !== 0) {
+      if (code !== 0 && !cancelled) {
         root.lastError = Model.errorText(actionErr.text) || (root.pendingVerb + " failed (exit " + code + ")")
         root.queue = []
       }
@@ -378,8 +410,19 @@ Singleton {
     stderr: SplitParser { onRead: function(line) { root.appendLog(line) } }
 
     onExited: function(code) {
-      if (root.streamAll) { root.upgradeAllStep(code); return }
+      var wasCancelled = root.cancelling
+      root.cancelling = false
+      if (root.streamAll && !wasCancelled) { root.upgradeAllStep(code); return }
       root.clearBusyNotice()
+      if (wasCancelled) {
+        // -1, not the SIGTERM code: LogView renders any code > 0 as a red
+        // "failed", and a cancel the user asked for is not a failure. Same
+        // reasoning as isStopCode() for a stopped box. The log's "── cancelled"
+        // line and the notice say what happened.
+        root.streamExit = -1
+        if (root.active || root.background) root.refresh()
+        return
+      }
       var creating = root.streamTitle.indexOf("create ") === 0
       var refusal = creating && code === 0 ? Model.createRefusal(root.log) : ""
       var failed = code !== 0 || refusal !== ""

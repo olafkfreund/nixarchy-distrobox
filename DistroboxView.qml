@@ -248,6 +248,14 @@ FocusScope {
   function handleTextKey(key) {
     if (key === "?") { root.helpOpen = !root.helpOpen; return }
     if (root.helpOpen) { root.helpOpen = false; return }
+    // Before the cursor guard: the lock can be held with nothing selected,
+    // and that is exactly when the user needs the way out of it.
+    //
+    // K, not X: PanelKeyCatcher turns both "x" and "X" into deleteRequested
+    // before textKey ever sees them, so X here would be dead code that also
+    // opened a delete prompt. It matches "j"/"k" lowercase only, so "K" gets
+    // through -- and a missed shift is just a cursor move.
+    if (key === "K") { DistroboxState.cancel(); return }
     if (key === "/") { filterField.forceActiveFocus(); return }
     if (key === "u") { DistroboxState.refresh(); return }
     if (key === "S") { askStopAll(); return }
@@ -389,6 +397,7 @@ FocusScope {
           foreground: root.foreground
           fontFamily: root.fontFamily
           onBackRequested: root.setMode("list")
+          onCancelRequested: DistroboxState.cancel()
         }
 
         // A second instance, not new bindings on the one above: that one

@@ -22,6 +22,7 @@ FocusScope {
   property bool follow: true
 
   signal backRequested()
+  signal cancelRequested()
 
   implicitHeight: header.implicitHeight + Style.spacing.md + logList.height + Style.spacing.md + hint.implicitHeight
 
@@ -44,6 +45,11 @@ FocusScope {
   Keys.onPressed: function(event) {
     var key = event.key
     if (key === Qt.Key_Escape) root.backRequested()
+    // event.text, not a ShiftModifier bitmask: that is how PanelKeyCatcher
+    // tells "x" from "X" too, and a modifier bitmask is not reliably set by
+    // every input method or keymap. Tested on razer: the bitmask never
+    // matched, so K did nothing in the log while it worked in the list.
+    else if (event.text === "K") root.cancelRequested()
     else if (key === Qt.Key_J || key === Qt.Key_Down) root.scroll(1)
     else if (key === Qt.Key_K || key === Qt.Key_Up) root.scroll(-1)
     else if (key === Qt.Key_PageDown) root.scroll(8)

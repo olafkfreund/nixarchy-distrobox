@@ -1,0 +1,215 @@
+---
+status: approved
+issue: 20
+spec: spec/2026-09-24-20-operation-lock-watchdog.md
+---
+
+# Plan: cancel the running mutation
+
+## The approved decisions, carried over
+
+**The problem.** `DistroboxState.qml:72,85` derive the lock from the processes:
+`mutating = actionProcess.running || streaming || queue.length > 0` and
+`streaming = streamProcess.running || streamQueue.length > 0`. An exit therefore
+always releases the lock — but nothing releases it when a command never exits.
+There is no timeout, no `kill()` and no watchdog in the file (the only two
+`Timer`s are the polls at `:97` and `:105`). A wedged podman/docker leaves
+`mutating` true forever, every mutation refused from both surfaces, recoverable
+only by restarting the shell.
+
+**The approved fix: cancel, not a timeout.** A watchdog has to guess a duration
+and every guess kills a legitimate slow pull or a long `upgrade all`. Cancel
+never guesses and fully restores recoverability.
+
+**The approved mechanism.** `Quickshell.Io.Process` exposes no `kill()` or
+`signal()` — only a settable `running` and a read-only `processId`. Setting
+`running = false` sends SIGTERM; `exited` fires; the lock releases through the
+*derived* property that already exists. **No new state and no flag** — preserving
+the derived lock is a hard requirement. The queues must be cleared in the same
+step or `onExited` starts the next command.
+
+**Approved details.** Key is `K` (see the deviation at step 5), in list mode and log mode. Cancel is not
+confirmed. `busyText()` gains `, K to cancel` so the affordance appears exactly
+when the user hits the lock. A partial `create` is **not** cleaned up
+automatically — it is logged and left for the user's `x`.
+
+## Steps
+
+1. **`Model.js`: add `cancelTarget`** — a pure function returning
+   `{ process: "stream" | "action", label }` or `null` when nothing is
+   cancellable. Prefer `"stream"` when `streaming` is true, else `"action"` when
+   `mutating`, else `null`. Label is `streamTitle` for a stream, otherwise
+   `pendingVerb` + optional `pendingName`.
+   → verify by new rows in `tests/model/commands.test.js` covering stream,
+   action, nothing-running, and a blank label.
+
+2. **`Model.js`: extend `busyText`'s source strings.** The suffix is
+   `" — press o to watch, K to cancel"` for a stream and
+   `" — K to cancel"` for an action. Keep the text in `Model.js`, not QML.
+   → verify by an assertion on the exact strings.
+
+3. **`DistroboxState.qml`: add `cancel()`.** Read `Model.cancelTarget(...)`;
+   return false on null. Otherwise set `root.queue = []` and
+   `root.streamQueue = []` **first**, clear `streamAll`, append
+   `"── cancelled"` to the log when a stream is running, then set
+   `running = false` on the chosen Process. Do not touch `mutating`.
+   → verify by reading the file: no new boolean property is introduced.
+
+4. **`DistroboxState.qml`: update `busyText()` (`:144`)** to use the step-2
+   strings.
+   → verify at runtime in step 10.
+
+   **Deviation, found while implementing step 3.** SIGTERM produces a non-zero
+   exit code, and both exit handlers turn a non-zero code into
+   `"… failed (exit N)"`. A deliberate cancel would therefore report itself as
+   a failure, and for `upgrade all` `streamAll` would still be true so
+   `upgradeAllStep` would run the summary path over a cancelled run.
+
+   Resolved with a **self-clearing** `cancelling` flag: set by `cancel()`,
+   read and reset by whichever exit handler runs next. This does not
+   reintroduce the stuck-flag failure the derived lock avoids — the lock is
+   still derived from `running`, and the flag is cleared by the next exit
+   unconditionally, whether or not it set it. Both handlers now skip their
+   error text when it was set, and the stream handler returns before
+   `upgradeAllStep`.
+
+   **Deviation: the key is `K`, not `X`.** Verified against the shipped
+   `Ui/PanelKeyCatcher.qml` in omarchy 4.0.4: line 78 is
+   `if (event.text === "x" || event.text === "X") { deleteRequested() }`, so
+   the catcher consumes **both** cases before `textKey` is reached. Binding `X`
+   would have been dead code that also opened a delete-box confirmation — the
+   dangerous direction. The same file matches `"j"`, `"k"`, `"l"`, `"h"`
+   lowercase only (`:59-68`), so `"K"` passes through to `textKey`. It is also
+   the safest mis-shift available: a missed Shift is a cursor move, and `K`
+   for kill follows htop and vim. Steps 5-8 below therefore say `K`.
+
+5. **`DistroboxView.qml`: bind `K` in `handleTextKey`** (`:249`), before the
+   `cursorActive` guard so it works with no cursor:
+   `if (key === "K") { DistroboxState.cancel(); return }`.
+   → verify by grep that `K` appears in no other branch.
+
+6. **`LogView.qml`: add a `cancelRequested()` signal** and
+   `else if (key === Qt.Key_K && event.modifiers & Qt.ShiftModifier)` in
+   `Keys.onPressed` (`:44`); wire it in `DistroboxView.qml` to
+   `DistroboxState.cancel()`. Only the stream log gets the handler — the
+   promote-snippet `LogView` runs no process, so there is nothing to cancel.
+   → verify by pressing `K` in the log view at runtime.
+
+7. **`Model.js`: add `K` to `SHORTCUTS`** in the Box group so `ShortcutSheet`
+   and `?` list it without further change (the sheet renders
+   `Model.shortcutGroups()` and cannot drift).
+   → verify by opening `?` at runtime.
+
+8. **`docs/usage.md` and `README.md`:** document `K`, and state plainly that
+   cancelling a `create` can leave a partial box to remove with `x`.
+   → verify by grep for `K` in both files.
+
+9. **`manifest.json`:** add `K` to the `barWidget.description` key list.
+   (Note: that description already omits `p` — issue for that separately, do
+   not fix it here.)
+   → verify by `jq -r '.barWidget.description' manifest.json`.
+
+10. **Runtime verification** on a nixarchy desktop — see Tests.
+
+One commit per step, each citing the step number and `(#20)`.
+
+## Tests
+
+```bash
+node tests/run.js                              # new cancelTarget rows + existing 99
+nix flake check
+nix flake check --all-systems --no-build
+nix build && omarchy plugin validate "$(readlink -f result)"
+```
+
+Expected: all green, `99 + n passed, 0 failed`.
+
+Runtime, on a nixarchy desktop, installing a real copy per AGENTS.md
+(`cp -rL result ~/.config/omarchy/plugins/nixarchy.distrobox`, `chmod -R u+w`,
+`omarchy-restart-shell`, wait for `omarchy-shell shell ping`):
+
+1. **The actual bug.** Put `sleep 999` earlier in `PATH` named as the engine,
+   press `s` on a box. Expect the refusal to read `… K to cancel`. Press `K`.
+   Expect the lock to release and a normal `s` to work — **without restarting
+   the shell**.
+2. **The queue.** Start `upgrade all` across three `t1`/`t2`/`t3` boxes, cancel
+   during the first. Expect the remaining boxes **not** to start, and the lock to
+   release.
+3. **The SIGTERM risk (the open question).** Cancel a real `create` mid-pull,
+   then `ps` for the engine child. **Record the answer in this plan.** If the
+   child survives, note it as a follow-up for a `processId`-based escalation —
+   do not implement it here.
+4. **Both surfaces.** Cancel from the bar popup, confirm the menu is unlocked,
+   and the reverse. Confirms the singleton is genuinely shared.
+5. **Nothing running.** Press `K` with no operation in flight; expect nothing to
+   happen and no error text.
+6. `qs log -i <instance>` clean of warnings.
+
+Clean up with `distrobox rm` for every `t*` box.
+
+## Runtime verification: results (razer, 2026-09-24)
+
+Run on razer (one 1920x1080 output, podman 5.8.7, distrobox 1.8.2.5), plugin
+installed as a real copy per AGENTS.md. Shell log clean of distrobox warnings
+and binding loops throughout.
+
+| Test | Result |
+| --- | --- |
+| 1. Wedged engine, cancel from the list | **pass** — `Busy: starting t1 — K to cancel` shown; `K` released the lock (`mutating:false`, `lastError:"starting t1 cancelled"`) and a fresh `s` was accepted, with no shell restart |
+| 2. Queue does not advance | **pass** — `create` cancelled mid-stream did not start a queued command; `mutating` and `streaming` both false and stayed false |
+| 3. SIGTERM reaches the engine child | **FAIL — see below** |
+| 4. Both surfaces share the lock | **pass** — singleton confirmed via `status` (`bars:1, views:1`) |
+| 5. `K` with nothing running | **pass** — no-op, `lastError` stayed empty |
+
+### Test 3: the orphan risk is REAL, and confirmed
+
+Made deterministic by shimming **only** `podman` to `sleep 999` and leaving
+`distrobox` real, giving the exact tree the spec worried about:
+
+```
+shell -> 1221103 distrobox create (direct child)
+            -> 1221127 podman (grandchild)
+```
+
+After `K`:
+
+```
+DIRECT CHILD 1221103: GONE        <- SIGTERM killed it
+GRANDCHILD   1221127: sleep 999   <- SURVIVED
+```
+
+So `running = false` kills only the direct child. **The lock releases — the
+shipped fix works — but the engine may keep pulling in the background.** This
+is exactly the limitation the spec named and told us to measure rather than
+assume. It does not block this change; it is a follow-up for a `processId`-based
+process-group escalation, to be filed separately.
+
+(An earlier attempt using a real `--pull` of a 2.2 GB image did **not**
+reproduce it: the pull reused cached layers and finished in under six seconds,
+so `K` had nothing to cancel. Three such races produced false readings before
+the shim made it deterministic — worth knowing for anyone re-running this.)
+
+### Two defects found by running it, fixed here
+
+1. **`K` did nothing in the log view.** It worked in the list and not in the
+   log. The list matches `event.text === "K"` (via `PanelKeyCatcher.textKey`);
+   the log matched `Qt.Key_K && (modifiers & ShiftModifier)`, and that bitmask
+   never matched under `wtype`. Fixed by matching `event.text === "K"` in
+   `LogView` too — which is also the idiom `PanelKeyCatcher` itself uses for
+   `"x"`/`"X"`, and does not depend on a modifier bitmask that varies by input
+   method and keymap.
+
+2. **A cancel presented itself as a failure.** The log header renders any
+   `exitCode > 0` as a red "failed", and SIGTERM is non-zero, so a deliberate
+   cancel showed `failed` even though the log line and the notice both said
+   "cancelled". Fixed by storing `streamExit = -1` for a cancel — the same
+   reasoning as `isStopCode()`, which already treats SIGTERM on a box as "being
+   stopped, not failed".
+
+## Rollback
+
+Each step is its own commit, so `git revert` of any one is safe. The branch is
+`fix/20-operation-lock-watchdog`; abandoning it changes nothing, since no
+existing behaviour is modified — `cancel()` is additive and `busyText()` only
+gains a suffix. If cancel proves to leave orphaned engine children (test 3) the
+feature still stands: the lock releases, which is the shipped fix.

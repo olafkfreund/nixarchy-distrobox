@@ -74,6 +74,7 @@ The same list is on the `?` sheet inside the panel (`Model.SHORTCUTS`).
 | `U` | Upgrade every box |
 | `S` | Stop every running box |
 | `o` | Show the create / upgrade log |
+| `K` | Cancel the running operation and free the lock |
 | `u` | Refresh now |
 | `?` | Show this list |
 | `esc` | Leave the filter, then close the panel |

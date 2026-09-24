@@ -46,6 +46,7 @@ var SHORTCUTS = [
   { group: "All boxes", keys: "U", text: "Upgrade every box" },
   { group: "All boxes", keys: "S", text: "Stop every running box" },
 
+  { group: "Panel", keys: "K", text: "Cancel the running operation and free the lock" },
   { group: "Panel", keys: "o", text: "Show the create / upgrade log" },
   { group: "Panel", keys: "u", text: "Refresh now" },
   { group: "Panel", keys: "?", text: "Show this list" },
@@ -503,6 +504,31 @@ function errorText(raw) {
   }
   var chosen = lastError || first
   return chosen ? sanitize(chosen.replace(/^Error(?: response from daemon)?:\s*/i, ""), 160) : ""
+}
+
+// The refusal shown when a second mutation is asked for. It names the key that
+// gets the lock back: without that, a wedged command looks unrecoverable and
+// the only way out is restarting the shell.
+function busyText(streaming, streamTitle, pendingVerb, pendingName) {
+  var target = cancelTarget(true, streaming, streamTitle, pendingVerb, pendingName)
+  if (!target) return ""
+  return "Busy: " + target.label
+    + (target.process === "stream" ? " — press o to watch, K to cancel" : " — K to cancel")
+}
+
+// What a cancel should stop right now, or null when nothing is cancellable.
+//
+// The lock is derived from the processes (`mutating`, `streaming`), never from
+// a flag, so cancelling means stopping whichever process holds it and letting
+// the existing `onExited` path release the lock. The caller must clear the
+// queues in the same step, or that exit handler starts the next command and
+// the lock never drops.
+function cancelTarget(mutating, streaming, streamTitle, pendingVerb, pendingName) {
+  if (streaming) return { process: "stream", label: trim(streamTitle) }
+  if (!mutating) return null
+  var verb = trim(pendingVerb)
+  var name = trim(pendingName)
+  return { process: "action", label: name ? verb + " " + name : verb }
 }
 
 // ---------------------------------------------------------------- settings
