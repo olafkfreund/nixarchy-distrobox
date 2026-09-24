@@ -364,6 +364,7 @@ FocusScope {
         spacing: px(Style.spacing.panelGap)
 
         PanelHero {
+          iconSize: px(Style.font.display)
           title: "Distrobox"
           meta: Model.summaryText(DistroboxState.boxes, DistroboxState.reachable, DistroboxState.engine)
           foreground: root.foreground
@@ -381,6 +382,7 @@ FocusScope {
             spacing: px(Style.spacing.sm)
 
             PanelActionButton {
+              fontSize: px(Style.font.icon)
               iconText: Model.Glyph.keyboard
               tooltipText: "Keyboard shortcuts  (?)"
               foreground: root.foreground
@@ -389,6 +391,7 @@ FocusScope {
             }
 
             PanelActionButton {
+              fontSize: px(Style.font.icon)
               iconText: Model.Glyph.refresh
               tooltipText: "Refresh  (u)"
               foreground: root.foreground
@@ -406,6 +409,7 @@ FocusScope {
             }
 
             PanelActionButton {
+              fontSize: px(Style.font.icon)
               visible: DistroboxState.counts.running > 0
               enabled: !DistroboxState.mutating
               iconText: Model.Glyph.stop

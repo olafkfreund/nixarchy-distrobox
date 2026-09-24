@@ -127,6 +127,7 @@ Item {
     }
 
     PanelToolTip {
+      fontSize: px(Style.font.bodySmall)
       visible: rowMouse.containsMouse
       text: "Enter " + rowSurface.row.name + " in a terminal  (enter)"
       fontFamily: root.fontFamily

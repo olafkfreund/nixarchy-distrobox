@@ -94,6 +94,7 @@ Item {
             topPadding: px(Style.spacing.xs)
 
             PanelSectionHeader {
+              fontSize: px(Style.font.caption)
               text: modelData.title.toUpperCase()
               textFormat: Text.PlainText
               foreground: root.foreground

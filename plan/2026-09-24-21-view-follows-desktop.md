@@ -126,6 +126,51 @@ they do not depend on `availableContent`, so reading them is safe.
 One commit per step, each citing the step number and `(#21)`. Step 2 is large
 but mechanical; keep it a single commit so the diff reads as one transformation.
 
+## Blocker found while implementing: shared shell components do not scale
+
+The spec said to adopt `nixarchy-pkg`'s `px()` convention. Verified while
+implementing that **`nixarchy-pkg` uses no shell `Panel*` components at all** --
+only `PanelWindow`, a Quickshell type. It draws every piece itself with raw
+`Text` and `Rectangle`, which is exactly why a layout multiplier works there
+with nothing left over.
+
+`nixarchy-distrobox` is not like that. It embeds `PanelHero`,
+`PanelActionButton`, `PanelSectionHeader`, `PanelToolTip`, `ConfirmDialog`,
+`CursorSurface`, `PanelKeyCatcher` and `TextField` from the shell. A `scale:`
+transform magnified those along with everything else; a layout multiplier
+cannot reach inside them.
+
+Audited against omarchy 4.0.4:
+
+| Component | Knob | Scales? |
+| --- | --- | --- |
+| `PanelActionButton` | `fontSize`, `size` | yes |
+| `PanelSectionHeader` | `fontSize` | yes |
+| `PanelToolTip` | `fontSize` | yes |
+| `PanelHero` | `iconSize` only | icon yes, **title/meta/detail no** (`PanelHero.qml:57,84,98` are internal) |
+| `ConfirmDialog` | none | **no** |
+| `CursorSurface` | none | sizes to content, so follows |
+
+Every available knob is now passed. The residual, measured on razer: the header
+title renders about 26% smaller than the body text implies (~80px wide against
+~108px under the old transform), and the delete confirmation does not scale at
+all. That is visible and not shippable as-is.
+
+This invalidates the spec's central assumption, so the remaining work is a
+decision for the owner rather than something to pick unilaterally. Options:
+
+1. **Draw the header (and confirmation) locally** instead of using the shell
+   components, so the plugin controls every size. Contained and keeps every
+   win; costs a small divergence from the shell's look and some duplicated
+   layout.
+2. **Revert to the `scale:` transform**, keeping only the screen-derived caps
+   from steps 5-6 (which work and do fix the clipping). Loses the reflow fix
+   that justified the change.
+3. **Upstream size properties to omarchy's `PanelHero`/`ConfirmDialog`**, then
+   this approach works completely. Correct long term, blocked on another repo.
+
+Steps 7-8 are held until that is decided.
+
 ## Tests
 
 ```bash
