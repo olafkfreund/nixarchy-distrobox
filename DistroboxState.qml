@@ -158,6 +158,29 @@ Singleton {
   // The queues are cleared FIRST. onExited starts the next command while one
   // is waiting, so cancelling with a queue still loaded would hand the lock
   // straight to the next box instead of giving it back.
+  // Stops everything the command started, not just the command.
+  //
+  // Every mutation is spawned through Model.detached(), so it leads a session
+  // of its own and one group signal reaches the whole tree -- `distrobox` is a
+  // chain of bash scripts, measured four levels deep before the engine, so
+  // signalling only the process we spawned left the engine pulling.
+  //
+  // This is safe ONLY because Quickshell does not setsid its own Process
+  // children: ours therefore is not already a group leader, `setsid` does not
+  // fork, and processId is the session leader we are signalling. If that ever
+  // changes upstream, setsid would fork, processId would be a wrapper that
+  // exits at once, and the lock would release while the work continued.
+  // `pgid == processId` is the thing to check if this ever misbehaves.
+  //
+  // Skipped silently when the pid is not yet assigned; the SIGTERM still
+  // happens.
+  function killGroup(proc) {
+    var argv = Model.killGroupArgv(proc.processId)
+    if (!argv || killProcess.running) return
+    killProcess.command = argv
+    killProcess.running = true
+  }
+
   function cancel() {
     var target = Model.cancelTarget(root.mutating, root.streaming, root.streamTitle,
                                     root.pendingVerb, root.pendingName)
@@ -166,10 +189,15 @@ Singleton {
     root.queue = []
     root.streamQueue = []
     root.streamAll = false
+    // The group first, then the process itself. `running = false` SIGTERMs
+    // only what we spawned, which is the head of a bash chain; the group
+    // signal is what reaches the engine at the end of it.
     if (target.process === "stream") {
       root.appendLog("── cancelled")
+      root.killGroup(streamProcess)
       streamProcess.running = false
     } else {
+      root.killGroup(actionProcess)
       actionProcess.running = false
     }
     root.lastError = target.label + " cancelled"
@@ -437,6 +465,9 @@ Singleton {
   }
 
   Process { id: copyProcess }
+
+  // Fire-and-forget, like copyProcess: cancel() must never wait on it.
+  Process { id: killProcess }
 
   // The user's own templates (#8). Read and parsed here, never handed to
   // distrobox; a missing file is simply no templates.

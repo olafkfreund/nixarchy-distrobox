@@ -26,6 +26,8 @@ one exception is entering a box, which opens a terminal by design.
   `DBX_CONTAINER_MANAGER` set to it.
 - **`omarchy-launch-tui`** opens the terminal for Enter. **`wl-copy`** copies
   names and snippets. Omarchy ships both.
+- **`setsid`** (util-linux) and **`kill`** (coreutils), so that cancelling with
+  `K` stops the engine the command started, and not just the command.
 
 A command that is missing fails silently inside the shell, so check these first
 when nothing happens.
@@ -285,12 +287,14 @@ press `K` to cancel it and get the panel back.
 **Nothing works and every key says "Busy".** A command that never finishes —
 a container engine that has stopped responding, or a first image pull that has
 stalled — used to hold the panel until you restarted the shell. Press `K`, in
-the list or in the log. It stops whatever is running and frees the panel.
+the list or in the log. It stops whatever is running — including the engine
+that command started, so a half-finished download stops too — and frees the
+panel.
 
-`K` cancels; it does not tidy up. A cancelled `create` can leave a
-half-made box behind, and a cancelled `U` leaves the boxes it had not reached
-alone. Both show up in the list as they really are, and a half-made box is an
-ordinary box you delete with `x`.
+`K` stops the work; it does not tidy up after it. A cancelled `create` can
+leave a half-made box behind, and a cancelled `U` leaves the boxes it had not
+reached alone. Both show up in the list as they really are, and a half-made
+box is an ordinary box you delete with `x`.
 
 **A running create or upgrade stopped.** Restarting or reloading the shell ends
 it, along with the `distrobox` process it was running. Start it again. A box

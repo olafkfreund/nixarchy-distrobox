@@ -506,6 +506,33 @@ function errorText(raw) {
   return chosen ? sanitize(chosen.replace(/^Error(?: response from daemon)?:\s*/i, ""), 160) : ""
 }
 
+// Signal the whole process group a cancelled command is running in.
+//
+// The leading "-" on the pid is what makes this a GROUP signal, and "--"
+// keeps it from being read as an option. Safe only because the command was
+// spawned through detached() below, which gives it a group of its own: every
+// process Quickshell spawns otherwise shares the SHELL's group, and signalling
+// that would kill the shell and every other plugin's helpers.
+//
+// Null unless the pid is a positive integer -- `kill -- -0` would signal the
+// caller's own group, which is exactly the accident this prevents.
+function killGroupArgv(pid) {
+  var n = Number(pid)
+  if (!isFinite(n) || Math.floor(n) !== n || n <= 0) return null
+  return ["kill", "-TERM", "--", "-" + String(n)]
+}
+
+// Run a command in its own session, so cancelling it can reach everything it
+// started. `distrobox` is a chain of bash scripts -- measured four levels deep
+// before the engine -- so signalling only the process we spawned leaves the
+// engine pulling. A session of its own turns that into one group signal.
+//
+// NOT for `enter`: that runs through omarchy-launch-tui and needs a
+// controlling terminal, which a new session takes away.
+function detached(argv) {
+  return argv ? ["setsid"].concat(argv) : null
+}
+
 // The refusal shown when a second mutation is asked for. It names the key that
 // gets the lock back: without that, a wedged command looks unrecoverable and
 // the only way out is restarting the shell.
@@ -616,12 +643,12 @@ function enterArgv(engine, name) {
 // way distrobox does, waits for the setup to finish, then exits.
 function startArgv(engine, name) {
   if (!isBoxName(name)) return null
-  return dbx(engine).concat(["distrobox", "enter", "--name", name, "-T", "--", "true"])
+  return detached(dbx(engine).concat(["distrobox", "enter", "--name", name, "-T", "--", "true"]))
 }
 
 function stopArgv(engine, names) {
   if (!allNames(names)) return null
-  return dbx(engine).concat(["distrobox", "stop", "--yes"], names)
+  return detached(dbx(engine).concat(["distrobox", "stop", "--yes"], names))
 }
 
 // Two commands, run back to back under one lock.
@@ -634,7 +661,7 @@ function restartArgvs(engine, name) {
 // home directory is kept, and the confirm dialog says so.
 function removeArgv(engine, name) {
   if (!isBoxName(name)) return null
-  return dbx(engine).concat(["distrobox", "rm", "--force", name])
+  return detached(dbx(engine).concat(["distrobox", "rm", "--force", name]))
 }
 
 // No DBX_NON_INTERACTIVE: an upgrade of a box that exists asks nothing, and
@@ -642,7 +669,7 @@ function removeArgv(engine, name) {
 // it now?". State answers every prompt with "n" instead.
 function upgradeArgv(engine, name) {
   if (!isBoxName(name)) return null
-  return dbx(engine).concat(["distrobox", "upgrade", name])
+  return detached(dbx(engine).concat(["distrobox", "upgrade", name]))
 }
 
 // U: one upgrade per box, not `distrobox upgrade --all`, which gives up at the
@@ -979,7 +1006,7 @@ function validateForm(form, boxes) {
 function createArgv(form, engine, boxes, hostHome) {
   if (!validateForm(form, boxes).ok) return null
   var f = form
-  var argv = dbx(engine).concat(["distrobox", "create", "--yes", "--name", trim(f.name)])
+  var argv = detached(dbx(engine).concat(["distrobox", "create", "--yes", "--name", trim(f.name)]))
   if (trim(f.clone)) argv.push("--clone", trim(f.clone))
   else argv.push("--image", trim(f.image))
   if (trim(f.hostname)) argv.push("--hostname", trim(f.hostname))

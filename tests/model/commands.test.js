@@ -1,6 +1,9 @@
 const { test, eq, ok, box, Model } = require("../harness.js")
 
-const PREFIX = ["env", "DBX_CONTAINER_MANAGER=podman"]
+const ENGINE = ["env", "DBX_CONTAINER_MANAGER=podman"]
+// A cancellable mutation runs in its own session, so cancelling it can signal
+// the whole group. `enter` and the read-only calls deliberately do not.
+const PREFIX = ["setsid"].concat(ENGINE)
 const starts = (argv, prefix) => eq(argv.slice(0, prefix.length), prefix)
 
 test("engineFor maps anything but exactly docker to podman", () => {
@@ -22,7 +25,7 @@ test("every distrobox argv starts with the engine, and the engine is never user 
     starts(argv, PREFIX)
     ok(argv.every(a => typeof a === "string"))
   }
-  starts(Model.removeArgv("docker", "f"), ["env", "DBX_CONTAINER_MANAGER=docker"])
+  starts(Model.removeArgv("docker", "f"), ["setsid", "env", "DBX_CONTAINER_MANAGER=docker"])
   starts(Model.removeArgv("$(id)", "f"), PREFIX)
 })
 
@@ -35,6 +38,34 @@ test("enter runs distrobox inside the terminal, with the engine", () => {
 
 test("start waits for the box's setup through distrobox enter", () => {
   eq(Model.startArgv("podman", "f"), PREFIX.concat(["distrobox", "enter", "--name", "f", "-T", "--", "true"]))
+})
+
+test("only the cancellable mutations get their own session", () => {
+  // Cancelling has to reach the engine, and distrobox is a chain of bash
+  // scripts several levels deep, so each of these runs in a session of its own.
+  for (const argv of [
+    Model.startArgv("podman", "f"),
+    Model.stopArgv("podman", ["f"]),
+    Model.removeArgv("podman", "f"),
+    Model.upgradeArgv("podman", "f"),
+    Model.createArgv(Object.assign(Model.emptyForm(), { name: "f" }), "podman", [], "/home/u"),
+    ...Model.upgradeAllArgvs("podman", ["f"]),
+    ...Model.restartArgvs("podman", "f")
+  ]) eq(argv[0], "setsid", JSON.stringify(argv.slice(0, 3)))
+
+  // enter runs in a terminal and needs a controlling tty, which a new session
+  // would take away. Listing and inspect are never cancelled.
+  ok(Model.enterArgv("podman", "f").indexOf("setsid") === -1)
+  ok(Model.listArgv("podman").indexOf("setsid") === -1)
+  ok(Model.inspectHomesArgv("podman", ["f"]).indexOf("setsid") === -1)
+})
+
+test("killGroupArgv signals the group, and never the caller's own", () => {
+  eq(Model.killGroupArgv(1857850), ["kill", "-TERM", "--", "-1857850"])
+  // `kill -- -0` signals the CALLER's process group: the shell and every
+  // other plugin's helpers. It must be impossible to build.
+  for (const bad of [0, -1, undefined, null, "", NaN, Infinity, 1.5, "0", "$(id)"])
+    eq(Model.killGroupArgv(bad), null, JSON.stringify(bad))
 })
 
 test("stop takes several names; rm is --force without --yes or --rm-home", () => {
@@ -152,8 +183,8 @@ test("copyTextArgv carries any text as one argv element", () => {
 
 test("upgrade all is one upgrade per box, and any bad name refuses the lot", () => {
   eq(Model.upgradeAllArgvs("docker", ["a", "b"]), [
-    ["env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "a"],
-    ["env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "b"]
+    ["setsid", "env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "a"],
+    ["setsid", "env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "upgrade", "b"]
   ])
   eq(Model.upgradeAllArgvs("podman", []), null)
   eq(Model.upgradeAllArgvs("podman", null), null)
@@ -187,3 +218,4 @@ test("busyText names the operation and the key that gets the lock back", () => {
   eq(Model.busyText(false, "", "stopping", "t1"), "Busy: stopping t1 — K to cancel")
   eq(Model.busyText(false, "", "stopping", ""), "Busy: stopping — K to cancel")
 })
+

@@ -111,7 +111,7 @@ test("a full form round-trips to the documented argv, with ~ expanded", () => {
     noEntry: true
   }), "docker", boxes, HOME)
   eq(argv, [
-    "env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "create", "--yes",
+    "setsid", "env", "DBX_CONTAINER_MANAGER=docker", "distrobox", "create", "--yes",
     "--name", "t1",
     "--image", "quay.io/toolbx/ubuntu-toolbox:24.04",
     "--hostname", "t1",
