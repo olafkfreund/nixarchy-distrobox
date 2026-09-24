@@ -23,6 +23,10 @@ FocusScope {
   property real textScale: 1.0
   function px(base) { return Math.round(base * root.textScale) }
 
+  // Set by the host from the room it actually has; the default is what this
+  // was fixed at before, for a host that assigns nothing.
+  property int maxHeight: px(Style.space(340))
+
   readonly property color dim: Qt.darker(foreground, 1.5)
 
   property bool follow: true
@@ -107,7 +111,7 @@ FocusScope {
     ListView {
       id: logList
       width: parent.width
-      height: px(Style.space(340))
+      height: root.maxHeight
       clip: true
       boundsBehavior: Flickable.StopAtBounds
       model: root.lines

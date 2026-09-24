@@ -28,6 +28,10 @@ FocusScope {
   property real textScale: 1.0
   function px(base) { return Math.round(base * root.textScale) }
 
+  // Set by the host from the room it actually has; the default is what this
+  // was fixed at before, for a host that assigns nothing.
+  property int maxHeight: px(Style.space(400))
+
   readonly property color dim: Qt.darker(foreground, 1.5)
 
   signal submitted(var form)
@@ -271,7 +275,7 @@ FocusScope {
     Flickable {
       id: flick
       width: parent.width
-      height: Math.min(fieldsColumn.implicitHeight, px(Style.space(400)))
+      height: Math.min(fieldsColumn.implicitHeight, root.maxHeight)
       contentHeight: fieldsColumn.implicitHeight
       clip: true
       boundsBehavior: Flickable.StopAtBounds

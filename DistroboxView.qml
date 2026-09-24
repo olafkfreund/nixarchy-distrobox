@@ -32,6 +32,41 @@ FocusScope {
 
   implicitHeight: column.implicitHeight
 
+  // How much room is left for the one variable-height child of the current
+  // mode, out of the height the host gave us.
+  //
+  // The binding flows strictly DOWNWARDS from root.height. It must never read
+  // column.implicitHeight, or it would depend on the very children whose size
+  // it decides and Qt would report a binding loop and oscillate. So the chrome
+  // is summed from the siblings only, skipping the four variable children --
+  // which also means a fixed row added later is counted without touching this.
+  readonly property int fixedChrome: {
+    var total = 0
+    for (var i = 0; i < column.children.length; i++) {
+      var child = column.children[i]
+      if (!child.visible) continue
+      if (child === list || child === createForm || child === logView || child === snippetView) continue
+      total += child.height + column.spacing
+    }
+    return total
+  }
+
+  // The most this view may occupy, set by the host from the SCREEN.
+  //
+  // Deliberately not root.height. The menu sizes its card from
+  // view.implicitHeight, so reading our own assigned height back would close a
+  // cycle: card.height -> implicitHeight -> availableContent -> height ->
+  // card.height. Taking the budget from the panel instead means the binding
+  // depends only on the monitor, which nothing downstream can feed.
+  // 0 means "unbounded": the bar popup sizes itself from implicitHeight.
+  property int availableHeight: 0
+
+  // A floor so a very short screen still shows something, and a fallback to
+  // what these were fixed at before for an unbounded host.
+  readonly property int availableContent: root.availableHeight > 0
+    ? Math.max(px(Style.space(120)), root.availableHeight - root.fixedChrome)
+    : px(Style.space(520))
+
   signal closeRequested()
   signal switchPanelRequested(int direction)
 
@@ -386,6 +421,7 @@ FocusScope {
         CreateForm {
           id: createForm
           textScale: root.textScale
+          maxHeight: root.availableContent
           visible: root.mode === "form"
           width: parent.width
           height: visible ? implicitHeight : 0
@@ -400,6 +436,7 @@ FocusScope {
         LogView {
           id: logView
           textScale: root.textScale
+          maxHeight: root.availableContent
           visible: root.mode === "log"
           width: parent.width
           height: visible ? implicitHeight : 0
@@ -420,6 +457,7 @@ FocusScope {
         LogView {
           id: snippetView
           textScale: root.textScale
+          maxHeight: root.availableContent
           visible: root.mode === "snippet"
           width: parent.width
           height: visible ? implicitHeight : 0
@@ -461,6 +499,7 @@ FocusScope {
         BoxList {
           id: list
           textScale: root.textScale
+          maxHeight: root.availableContent
           visible: root.mode === "list"
           width: parent.width
           rows: root.rows

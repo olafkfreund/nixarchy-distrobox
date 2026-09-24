@@ -85,11 +85,30 @@ they do not depend on `availableContent`, so reading them is safe.
    **reading only those siblings, never `column.implicitHeight`**. Then:
 
    ```qml
-   readonly property int availableContent: root.height > 0
-     ? Math.max(px(Style.space(120)), root.height - chromeHeight)
+   readonly property int availableContent: root.availableHeight > 0
+     ? Math.max(px(Style.space(120)), root.availableHeight - fixedChrome)
      : px(Style.space(520))   // unbounded host: today's cap
    ```
    → verify by step 8 (no binding-loop warnings).
+
+   **Deviation: the budget comes from the panel, not from `root.height`.**
+   The plan said to derive this from the height the host assigns. Writing it
+   that way closed exactly the loop this plan warned about, one level up in
+   `Menu.qml`: the card is sized from `view.implicitHeight`
+   (`Menu.qml:123-125`), so `card.height -> view.implicitHeight ->
+   availableContent -> root.height -> frame.height -> card.height`. The view's
+   own binding was non-circular; the cycle ran through the host.
+
+   Resolved with a new `availableHeight` property that the host sets from the
+   SCREEN — `Math.round(panel.height * 0.8)` minus the card insets, matching
+   the card's own clamp. It depends only on the monitor, which nothing
+   downstream can feed, so the cycle cannot close. `0` means unbounded, which
+   is what the bar popup passes (it sizes itself from `implicitHeight`).
+
+   `fixedChrome` is likewise computed by iterating `column.children` and
+   skipping the four variable children, rather than summing named siblings:
+   non-circular for the same reason, and a fixed row added later is counted
+   without anyone having to remember to update it.
 
 6. **Bind the three caps.** `BoxList.maxHeight`, `LogView`'s list height
    (`:98`) and `CreateForm`'s Flickable cap (`:268`) all bind to

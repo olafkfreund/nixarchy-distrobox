@@ -150,6 +150,12 @@ Item {
           width: frame.width
           height: frame.height
           textScale: root.textScale
+          // The room the monitor allows, matching the card's own 0.8 clamp.
+          // From panel.height, never from frame.height: the card is sized from
+          // this view's implicitHeight, so feeding our own height back in would
+          // be a binding loop.
+          availableHeight: Math.round(panel.height * 0.8)
+                           - card.contentTopInset - card.contentBottomInset
           foreground: Color.foreground
           fontFamily: Style.font.family
           onCloseRequested: root.close()
