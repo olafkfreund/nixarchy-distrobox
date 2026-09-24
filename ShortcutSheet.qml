@@ -15,10 +15,14 @@ Item {
   property color background: Color.popups.background
   property string fontFamily: Style.font.family
 
-  // Set by the host: the menu passes 1.45, the bar popup leaves it 1.0.
-  // A layout-time multiplier, never a `scale:` transform -- see DistroboxView.
-  property real textScale: 1.0
-  function px(base) { return Math.round(base * root.textScale) }
+
+  // Resolved by DistroboxView from its token set; never computed here.
+  property int fontRow: Style.font.caption
+  property int fontLabel: Style.font.body
+  property int fontIcon: Style.font.icon
+  property int fontGlyph: Style.font.iconSmall
+  property int fontHero: Style.font.display
+
 
 
   readonly property color dim: Qt.darker(foreground, 1.5)
@@ -29,7 +33,7 @@ Item {
   onOpenedChanged: if (opened) flick.contentY = 0
 
   function scroll(direction) {
-    var step = px(Style.space(60)) * direction
+    var step = Style.space(60) * direction
     flick.contentY = Math.max(0, Math.min(flick.contentHeight - flick.height, flick.contentY + step))
   }
 
@@ -46,8 +50,8 @@ Item {
     Flickable {
       id: flick
       anchors.fill: parent
-      anchors.leftMargin: px(Style.spacing.md)
-      anchors.rightMargin: px(Style.spacing.md)
+      anchors.leftMargin: Style.spacing.md
+      anchors.rightMargin: Style.spacing.md
       contentHeight: sheetColumn.implicitHeight
       clip: true
       boundsBehavior: Flickable.StopAtBounds
@@ -56,11 +60,11 @@ Item {
         id: sheetColumn
         width: flick.width
         y: Math.max(0, (flick.height - implicitHeight) / 2)
-        spacing: px(Style.spacing.lg)
+        spacing: Style.spacing.lg
 
         Row {
           width: parent.width
-          spacing: px(Style.spacing.md)
+          spacing: Style.spacing.md
 
           Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -68,7 +72,7 @@ Item {
             textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.icon)
+            font.pixelSize: root.fontIcon
           }
 
           Text {
@@ -77,7 +81,7 @@ Item {
             textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
             font.bold: true
             font.letterSpacing: 1.2
           }
@@ -90,11 +94,11 @@ Item {
             required property var modelData
 
             width: parent.width
-            spacing: px(Style.spacing.xs)
-            topPadding: px(Style.spacing.xs)
+            spacing: Style.spacing.xs
+            topPadding: Style.spacing.xs
 
             PanelSectionHeader {
-              fontSize: px(Style.font.caption)
+              fontSize: root.fontRow
               text: modelData.title.toUpperCase()
               textFormat: Text.PlainText
               foreground: root.foreground
@@ -108,32 +112,32 @@ Item {
                 required property var modelData
 
                 width: parent.width
-                implicitHeight: entryText.implicitHeight + px(Style.spacing.xs)
+                implicitHeight: entryText.implicitHeight + Style.spacing.xs
                 height: implicitHeight
 
                 Text {
                   id: entryKeys
                   anchors.left: parent.left
                   anchors.verticalCenter: parent.verticalCenter
-                  width: px(Style.space(90))
+                  width: Style.space(90)
                   text: modelData.keys
                   textFormat: Text.PlainText
                   color: Color.accent
                   font.family: root.fontFamily
-                  font.pixelSize: px(Style.font.caption)
+                  font.pixelSize: root.fontRow
                 }
 
                 Text {
                   id: entryText
                   anchors.left: entryKeys.right
-                  anchors.leftMargin: px(Style.spacing.md)
+                  anchors.leftMargin: Style.spacing.md
                   anchors.right: parent.right
                   anchors.verticalCenter: parent.verticalCenter
                   text: modelData.text
                   textFormat: Text.PlainText
                   color: root.dim
                   font.family: root.fontFamily
-                  font.pixelSize: px(Style.font.caption)
+                  font.pixelSize: root.fontRow
                   elide: Text.ElideRight
                 }
               }
@@ -143,13 +147,13 @@ Item {
 
         Text {
           width: parent.width
-          topPadding: px(Style.spacing.md)
+          topPadding: Style.spacing.md
           horizontalAlignment: Text.AlignHCenter
           text: "j k scroll · press ? or esc to go back"
           textFormat: Text.PlainText
           color: root.dim
           font.family: root.fontFamily
-          font.pixelSize: px(Style.font.caption)
+          font.pixelSize: root.fontRow
         }
       }
     }

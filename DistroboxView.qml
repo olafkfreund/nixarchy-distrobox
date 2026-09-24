@@ -14,15 +14,21 @@ FocusScope {
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
 
-  // The menu draws everything larger, because it is read from further away.
-  // A layout-time multiplier, never a `scale:` transform: a transform
-  // magnifies glyphs after they are laid out, so wrapping and eliding are
-  // computed at the wrong size and then stretched. nixarchy-pkg and
-  // nixarchy-flatsnap do it this way too.
+  // How big the text is, chosen by the host as a SET OF TOKENS, never a
+  // factor. The shell already scales every Style.font.* from [font] base-size
+  // (omarchy display text size), so a multiplier on top would keep this
+  // surface a fixed percentage above the rest of the desktop at every
+  // setting, and would override a theme that pins a token.
   //
-  // 1.0 from the bar popup, so Math.round(n * 1.0) === n leaves it untouched.
-  property real textScale: 1.0
-  function px(base) { return Math.round(base * root.textScale) }
+  // The menu is bigger because it sits a rung or two higher on the shell's
+  // own ladder; the bar popup keeps the base rungs. Nothing multiplies.
+  property bool large: false
+
+  readonly property int fontRow:   large ? Style.font.title        : Style.font.caption
+  readonly property int fontLabel: large ? Style.font.heading      : Style.font.body
+  readonly property int fontIcon:  large ? Style.font.heading      : Style.font.icon
+  readonly property int fontGlyph: large ? Style.font.title        : Style.font.iconSmall
+  readonly property int fontHero:  large ? Style.font.displayLarge : Style.font.display
 
   readonly property color dim: Qt.darker(foreground, 1.5)
 
@@ -64,8 +70,8 @@ FocusScope {
   // A floor so a very short screen still shows something, and a fallback to
   // what these were fixed at before for an unbounded host.
   readonly property int availableContent: root.availableHeight > 0
-    ? Math.max(px(Style.space(120)), root.availableHeight - root.fixedChrome)
-    : px(Style.space(520))
+    ? Math.max(Style.space(120), root.availableHeight - root.fixedChrome)
+    : Style.space(520)
 
   signal closeRequested()
   signal switchPanelRequested(int direction)
@@ -364,14 +370,14 @@ FocusScope {
       Column {
         id: column
         anchors.fill: parent
-        spacing: px(Style.spacing.panelGap)
+        spacing: Style.spacing.panelGap
 
         // The shell's PanelHero, drawn here instead of used, because its
         // title and meta font sizes are internal (PanelHero.qml:57,98) and
         // cannot be multiplied from outside. Under the old `scale:` transform
         // they magnified with everything else; under a layout multiplier they
         // would stay at base size and the header would read ~26% small against
-        // the body. Same layout and the same tokens, only sized through px().
+        // the body. Same layout and the same tokens, only sized through .
         // If omarchy ever exposes those sizes, delete this and go back.
         Item {
           id: hero
@@ -386,17 +392,17 @@ FocusScope {
             color: DistroboxState.counts.failing > 0 ? Color.urgent : root.foreground
             opacity: DistroboxState.counts.running > 0 ? 1.0 : 0.5
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.display)
+            font.pixelSize: root.fontHero
           }
 
           Column {
             id: heroLabels
             anchors.left: heroIcon.right
-            anchors.leftMargin: px(Style.space(14))
+            anchors.leftMargin: Style.space(14)
             anchors.right: parent.right
-            anchors.rightMargin: heroTrailing.width + px(Style.space(12))
+            anchors.rightMargin: heroTrailing.width + Style.space(12)
             anchors.verticalCenter: parent.verticalCenter
-            spacing: px(Style.space(2))
+            spacing: Style.space(2)
 
             Text {
               textFormat: Text.PlainText
@@ -404,7 +410,7 @@ FocusScope {
               text: "Distrobox"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: px(Style.font.title)
+              font.pixelSize: root.fontIcon
               font.bold: true
               elide: Text.ElideRight
             }
@@ -416,7 +422,7 @@ FocusScope {
               visible: text !== ""
               color: root.dim
               font.family: root.fontFamily
-              font.pixelSize: px(Style.font.caption)
+              font.pixelSize: root.fontRow
               font.bold: true
               font.letterSpacing: 1.2
               elide: Text.ElideRight
@@ -427,10 +433,10 @@ FocusScope {
             id: heroTrailing
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            spacing: px(Style.spacing.sm)
+            spacing: Style.spacing.sm
 
             PanelActionButton {
-              fontSize: px(Style.font.icon)
+              fontSize: root.fontIcon
               iconText: Model.Glyph.keyboard
               tooltipText: "Keyboard shortcuts  (?)"
               foreground: root.foreground
@@ -439,7 +445,7 @@ FocusScope {
             }
 
             PanelActionButton {
-              fontSize: px(Style.font.icon)
+              fontSize: root.fontIcon
               iconText: Model.Glyph.refresh
               tooltipText: "Refresh  (u)"
               foreground: root.foreground
@@ -457,7 +463,7 @@ FocusScope {
             }
 
             PanelActionButton {
-              fontSize: px(Style.font.icon)
+              fontSize: root.fontIcon
               visible: DistroboxState.counts.running > 0
               enabled: !DistroboxState.mutating
               iconText: Model.Glyph.stop
@@ -472,7 +478,11 @@ FocusScope {
 
         CreateForm {
           id: createForm
-          textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "form"
           width: parent.width
@@ -487,7 +497,11 @@ FocusScope {
 
         LogView {
           id: logView
-          textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "log"
           width: parent.width
@@ -508,7 +522,11 @@ FocusScope {
         // word blank, since nothing ran.
         LogView {
           id: snippetView
-          textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "snippet"
           width: parent.width
@@ -550,7 +568,11 @@ FocusScope {
 
         BoxList {
           id: list
-          textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "list"
           width: parent.width
@@ -571,9 +593,9 @@ FocusScope {
         Column {
           visible: root.mode === "list" && list.count === 0
           width: parent.width
-          spacing: px(Style.spacing.sm)
-          topPadding: px(Style.spacing.lg)
-          bottomPadding: px(Style.spacing.lg)
+          spacing: Style.spacing.sm
+          topPadding: Style.spacing.lg
+          bottomPadding: Style.spacing.lg
 
           Text {
             width: parent.width
@@ -588,7 +610,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.body)
+            font.pixelSize: root.fontLabel
             wrapMode: Text.WordWrap
           }
 
@@ -600,7 +622,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
             wrapMode: Text.WordWrap
             lineHeight: 1.3
           }
@@ -613,7 +635,7 @@ FocusScope {
 
         Rectangle {
           width: parent.width
-          height: Math.max(1, px(Style.space(1)))
+          height: Math.max(1, Style.space(1))
           color: root.dim
           opacity: 0.25
         }
@@ -634,21 +656,21 @@ FocusScope {
             textFormat: Text.PlainText
             color: Color.urgent
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.iconSmall)
+            font.pixelSize: root.fontGlyph
           }
 
           Text {
             id: errorText
             anchors.left: errorGlyph.right
-            anchors.leftMargin: px(Style.spacing.md)
+            anchors.leftMargin: Style.spacing.md
             anchors.right: errorDismiss.left
-            anchors.rightMargin: px(Style.spacing.md)
+            anchors.rightMargin: Style.spacing.md
             anchors.top: parent.top
             text: DistroboxState.lastError
             textFormat: Text.PlainText
             color: Color.urgent
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
             wrapMode: Text.WordWrap
           }
 
@@ -656,13 +678,13 @@ FocusScope {
             id: errorDismiss
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: -px(Style.spacing.xs)
+            anchors.topMargin: -Style.spacing.xs
             iconText: Model.Glyph.close
             tooltipText: "Dismiss"
             foreground: root.foreground
             fontFamily: root.fontFamily
-            fontSize: px(Style.font.iconSmall)
-            size: px(Style.space(20))
+            fontSize: root.fontGlyph
+            size: Style.space(20)
             onClicked: DistroboxState.lastError = ""
           }
         }
@@ -681,7 +703,7 @@ FocusScope {
           textFormat: Text.PlainText
           color: DistroboxState.streaming ? Color.accent : root.dim
           font.family: root.fontFamily
-          font.pixelSize: px(Style.font.caption)
+          font.pixelSize: root.fontRow
           elide: Text.ElideRight
         }
 
@@ -697,7 +719,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
           }
 
           Text {
@@ -707,7 +729,7 @@ FocusScope {
             color: root.foreground
             opacity: 0.65
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
           }
         }
       }
@@ -715,7 +737,11 @@ FocusScope {
 
     ShortcutSheet {
       id: helpSheet
-      textScale: root.textScale
+      fontRow: root.fontRow
+      fontLabel: root.fontLabel
+      fontIcon: root.fontIcon
+      fontGlyph: root.fontGlyph
+      fontHero: root.fontHero
       anchors.fill: parent
       z: 5
       opened: root.helpOpen
@@ -727,7 +753,7 @@ FocusScope {
 
     // The shell's ConfirmDialog, drawn here for the same reason as the hero
     // above: it exposes no size property, so a layout multiplier cannot reach
-    // its message or its buttons. Same layout, same tokens, sized through px().
+    // its message or its buttons. Same layout, same tokens, sized through .
     Item {
       id: confirmDialog
       anchors.fill: parent
@@ -760,15 +786,15 @@ FocusScope {
 
         BorderSurface {
           id: confirmCard
-          width: Math.min(parent.width - px(Style.space(32)), px(Style.space(370)))
+          width: Math.min(parent.width - Style.space(32), Style.space(370))
           // Grows with the wrapped message, so a narrow host does not squeeze
           // the text into the buttons.
           height: confirmCard.contentTopInset + confirmCard.contentBottomInset
-                  + confirmMessageText.implicitHeight + px(Style.space(20)) + px(Style.space(34))
+                  + confirmMessageText.implicitHeight + Style.space(20) + Style.space(34)
           anchors.centerIn: parent
           color: Color.popups.background
           borderSpec: Border.flat(Color.accent, Style.normalBorderWidth)
-          padding: px(Style.space(18))
+          padding: Style.space(18)
           radius: Style.cornerRadius
 
           MouseArea { anchors.fill: parent; onClicked: {} }
@@ -789,14 +815,14 @@ FocusScope {
               text: root.confirmMessage
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: px(Style.font.title)
+              font.pixelSize: root.fontIcon
               wrapMode: Text.WordWrap
             }
 
             Row {
               anchors.right: parent.right
               anchors.bottom: parent.bottom
-              spacing: px(Style.space(10))
+              spacing: Style.space(10)
 
               Repeater {
                 model: ["Cancel", root.confirmLabel]
@@ -808,8 +834,8 @@ FocusScope {
                   readonly property bool selected: root.confirmIndex === index
                   readonly property bool destructive: index === 1
 
-                  width: px(Style.space(88))
-                  height: px(Style.space(34))
+                  width: Style.space(88)
+                  height: Style.space(34)
                   color: selected
                     ? (destructive ? Util.alpha(Color.urgent, 0.22)
                                    : Util.alpha(root.foreground, 0.08))
@@ -827,7 +853,7 @@ FocusScope {
                     color: destructive ? (selected ? Color.urgent : root.foreground)
                                        : (selected ? Color.accent : root.foreground)
                     font.family: root.fontFamily
-                    font.pixelSize: px(Style.font.caption)
+                    font.pixelSize: root.fontRow
                   }
 
                   MouseArea {

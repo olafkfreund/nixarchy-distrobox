@@ -109,6 +109,23 @@
                 echo "hardcoded colour above; use a Color.* token" >&2; exit 1
               fi
 
+              # The desktop already has one text-size control: [font] base-size,
+              # set by `omarchy display text size`. Every Style.font.* and
+              # Style.space() scales from it. A multiplier on top keeps this
+              # plugin a fixed percentage above every other surface at every
+              # setting, and silently overrides a theme that pins a token. A
+              # surface that wants to be bigger picks a larger token instead.
+              if grep -nwE 'textScale|uiScale' ${plugin}/*.qml; then
+                echo "text multiplier above; pick a larger Style.font.* token" >&2; exit 1
+              fi
+              if grep -n 'px(' ${plugin}/*.qml; then
+                echo "px() multiplier above; pick a larger Style.font.* token" >&2; exit 1
+              fi
+              if grep -nE '(pixelSize|fontSize|iconSize):' ${plugin}/*.qml \
+                 | grep -vE '(pixelSize|fontSize|iconSize): *(Style\.font\.[A-Za-z]+|root\.font[A-Z][A-Za-z]*)( |$)'; then
+                echo "font size above is neither a Style.font.* token nor a font* role" >&2; exit 1
+              fi
+
               touch "$out"
             '';
         });
