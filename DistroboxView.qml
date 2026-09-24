@@ -23,6 +23,21 @@ FocusScope {
   // 1.0 from the bar popup, so Math.round(n * 1.0) === n leaves it untouched.
   property real textScale: 1.0
   function px(base) { return Math.round(base * root.textScale) }
+  // How big the text is, chosen by the host as a SET OF TOKENS, never a
+  // factor. The shell already scales every Style.font.* from [font] base-size
+  // (omarchy display text size), so a multiplier on top would keep this
+  // surface a fixed percentage above the rest of the desktop at every
+  // setting, and would override a theme that pins a token.
+  //
+  // The menu is bigger because it sits a rung or two higher on the shell's
+  // own ladder; the bar popup keeps the base rungs. Nothing multiplies.
+  property bool large: false
+
+  readonly property int fontRow:   large ? Style.font.title        : Style.font.caption
+  readonly property int fontLabel: large ? Style.font.heading      : Style.font.body
+  readonly property int fontIcon:  large ? Style.font.heading      : Style.font.icon
+  readonly property int fontGlyph: large ? Style.font.title        : Style.font.iconSmall
+  readonly property int fontHero:  large ? Style.font.displayLarge : Style.font.display
 
   readonly property color dim: Qt.darker(foreground, 1.5)
 
@@ -473,6 +488,11 @@ FocusScope {
         CreateForm {
           id: createForm
           textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "form"
           width: parent.width
@@ -488,6 +508,11 @@ FocusScope {
         LogView {
           id: logView
           textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "log"
           width: parent.width
@@ -509,6 +534,11 @@ FocusScope {
         LogView {
           id: snippetView
           textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "snippet"
           width: parent.width
@@ -551,6 +581,11 @@ FocusScope {
         BoxList {
           id: list
           textScale: root.textScale
+          fontRow: root.fontRow
+          fontLabel: root.fontLabel
+          fontIcon: root.fontIcon
+          fontGlyph: root.fontGlyph
+          fontHero: root.fontHero
           maxHeight: root.availableContent
           visible: root.mode === "list"
           width: parent.width
@@ -716,6 +751,11 @@ FocusScope {
     ShortcutSheet {
       id: helpSheet
       textScale: root.textScale
+      fontRow: root.fontRow
+      fontLabel: root.fontLabel
+      fontIcon: root.fontIcon
+      fontGlyph: root.fontGlyph
+      fontHero: root.fontHero
       anchors.fill: parent
       z: 5
       opened: root.helpOpen

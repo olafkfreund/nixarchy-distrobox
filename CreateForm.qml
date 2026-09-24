@@ -28,6 +28,14 @@ FocusScope {
   property real textScale: 1.0
   function px(base) { return Math.round(base * root.textScale) }
 
+  // Resolved by DistroboxView from its token set; never computed here.
+  property int fontRow: Style.font.caption
+  property int fontLabel: Style.font.body
+  property int fontIcon: Style.font.icon
+  property int fontGlyph: Style.font.iconSmall
+  property int fontHero: Style.font.display
+
+
   // Set by the host from the room it actually has; the default is what this
   // was fixed at before, for a host that assigns nothing.
   property int maxHeight: px(Style.space(400))

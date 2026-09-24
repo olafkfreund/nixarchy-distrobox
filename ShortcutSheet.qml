@@ -20,6 +20,14 @@ Item {
   property real textScale: 1.0
   function px(base) { return Math.round(base * root.textScale) }
 
+  // Resolved by DistroboxView from its token set; never computed here.
+  property int fontRow: Style.font.caption
+  property int fontLabel: Style.font.body
+  property int fontIcon: Style.font.icon
+  property int fontGlyph: Style.font.iconSmall
+  property int fontHero: Style.font.display
+
+
 
   readonly property color dim: Qt.darker(foreground, 1.5)
 
