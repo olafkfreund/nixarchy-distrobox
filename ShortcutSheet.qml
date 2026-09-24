@@ -119,7 +119,17 @@ Item {
                   id: entryKeys
                   anchors.left: parent.left
                   anchors.verticalCenter: parent.verticalCenter
-                  width: Style.space(90)
+                  // A Text paints its full content past `width` unless elide
+                  // or clip is set, and the description anchors to where this
+                  // says it ends -- so a fixed width let a long key paint over
+                  // it. The token stays the FLOOR, so every short row keeps
+                  // its alignment and only a row that needs more takes more.
+                  //
+                  // Not elided on purpose: "tab  ↓ / shift+ta…" tells nobody
+                  // what to press, which is worse than one ragged row.
+                  // + the gutter, or a row that outgrows the floor leaves the
+                  // description butted straight against its last key.
+                  width: Math.max(Style.space(90), implicitWidth + Style.spacing.md)
                   text: modelData.keys
                   textFormat: Text.PlainText
                   color: Color.accent
