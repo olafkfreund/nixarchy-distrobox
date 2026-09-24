@@ -158,6 +158,15 @@ Singleton {
   // The queues are cleared FIRST. onExited starts the next command while one
   // is waiting, so cancelling with a queue still loaded would hand the lock
   // straight to the next box instead of giving it back.
+  // Kills what `proc` started. Skipped silently when the pid is not yet
+  // assigned; the SIGTERM below still happens.
+  function killChildren(proc) {
+    var argv = Model.killChildrenArgv(proc.processId)
+    if (!argv || killProcess.running) return
+    killProcess.command = argv
+    killProcess.running = true
+  }
+
   function cancel() {
     var target = Model.cancelTarget(root.mutating, root.streaming, root.streamTitle,
                                     root.pendingVerb, root.pendingName)
@@ -166,10 +175,23 @@ Singleton {
     root.queue = []
     root.streamQueue = []
     root.streamAll = false
+    // Descendants FIRST, then the process itself.
+    //
+    // `running = false` SIGTERMs only what we spawned. `distrobox create`
+    // spawns the engine, so the engine is a grandchild and outlives it -- it
+    // keeps pulling with nothing on screen to say so. pkill -P matches on
+    // PARENT pid, so it has to run while that parent is still alive: kill the
+    // parent first and its children are reparented to init, the link is gone,
+    // and the pull survives. That failure still looks correct, because the
+    // lock releases either way.
+    //
+    // One level, not recursive -- see Model.killChildrenArgv.
     if (target.process === "stream") {
       root.appendLog("── cancelled")
+      root.killChildren(streamProcess)
       streamProcess.running = false
     } else {
+      root.killChildren(actionProcess)
       actionProcess.running = false
     }
     root.lastError = target.label + " cancelled"
@@ -437,6 +459,9 @@ Singleton {
   }
 
   Process { id: copyProcess }
+
+  // Fire-and-forget, like copyProcess: cancel() must never wait on it.
+  Process { id: killProcess }
 
   // The user's own templates (#8). Read and parsed here, never handed to
   // distrobox; a missing file is simply no templates.
