@@ -401,7 +401,7 @@ FocusScope {
             color: DistroboxState.counts.failing > 0 ? Color.urgent : root.foreground
             opacity: DistroboxState.counts.running > 0 ? 1.0 : 0.5
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.display)
+            font.pixelSize: root.fontHero
           }
 
           Column {
@@ -419,7 +419,7 @@ FocusScope {
               text: "Distrobox"
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: px(Style.font.title)
+              font.pixelSize: root.fontIcon
               font.bold: true
               elide: Text.ElideRight
             }
@@ -431,7 +431,7 @@ FocusScope {
               visible: text !== ""
               color: root.dim
               font.family: root.fontFamily
-              font.pixelSize: px(Style.font.caption)
+              font.pixelSize: root.fontRow
               font.bold: true
               font.letterSpacing: 1.2
               elide: Text.ElideRight
@@ -445,7 +445,7 @@ FocusScope {
             spacing: px(Style.spacing.sm)
 
             PanelActionButton {
-              fontSize: px(Style.font.icon)
+              fontSize: root.fontIcon
               iconText: Model.Glyph.keyboard
               tooltipText: "Keyboard shortcuts  (?)"
               foreground: root.foreground
@@ -454,7 +454,7 @@ FocusScope {
             }
 
             PanelActionButton {
-              fontSize: px(Style.font.icon)
+              fontSize: root.fontIcon
               iconText: Model.Glyph.refresh
               tooltipText: "Refresh  (u)"
               foreground: root.foreground
@@ -472,7 +472,7 @@ FocusScope {
             }
 
             PanelActionButton {
-              fontSize: px(Style.font.icon)
+              fontSize: root.fontIcon
               visible: DistroboxState.counts.running > 0
               enabled: !DistroboxState.mutating
               iconText: Model.Glyph.stop
@@ -623,7 +623,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.body)
+            font.pixelSize: root.fontLabel
             wrapMode: Text.WordWrap
           }
 
@@ -635,7 +635,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
             wrapMode: Text.WordWrap
             lineHeight: 1.3
           }
@@ -669,7 +669,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: Color.urgent
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.iconSmall)
+            font.pixelSize: root.fontGlyph
           }
 
           Text {
@@ -683,7 +683,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: Color.urgent
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
             wrapMode: Text.WordWrap
           }
 
@@ -696,7 +696,7 @@ FocusScope {
             tooltipText: "Dismiss"
             foreground: root.foreground
             fontFamily: root.fontFamily
-            fontSize: px(Style.font.iconSmall)
+            fontSize: root.fontGlyph
             size: px(Style.space(20))
             onClicked: DistroboxState.lastError = ""
           }
@@ -716,7 +716,7 @@ FocusScope {
           textFormat: Text.PlainText
           color: DistroboxState.streaming ? Color.accent : root.dim
           font.family: root.fontFamily
-          font.pixelSize: px(Style.font.caption)
+          font.pixelSize: root.fontRow
           elide: Text.ElideRight
         }
 
@@ -732,7 +732,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
           }
 
           Text {
@@ -742,7 +742,7 @@ FocusScope {
             color: root.foreground
             opacity: 0.65
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
           }
         }
       }
@@ -829,7 +829,7 @@ FocusScope {
               text: root.confirmMessage
               color: root.foreground
               font.family: root.fontFamily
-              font.pixelSize: px(Style.font.title)
+              font.pixelSize: root.fontIcon
               wrapMode: Text.WordWrap
             }
 
@@ -867,7 +867,7 @@ FocusScope {
                     color: destructive ? (selected ? Color.urgent : root.foreground)
                                        : (selected ? Color.accent : root.foreground)
                     font.family: root.fontFamily
-                    font.pixelSize: px(Style.font.caption)
+                    font.pixelSize: root.fontRow
                   }
 
                   MouseArea {

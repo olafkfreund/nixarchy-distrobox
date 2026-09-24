@@ -76,7 +76,7 @@ Item {
             textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.icon)
+            font.pixelSize: root.fontIcon
           }
 
           Text {
@@ -85,7 +85,7 @@ Item {
             textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: px(Style.font.caption)
+            font.pixelSize: root.fontRow
             font.bold: true
             font.letterSpacing: 1.2
           }
@@ -102,7 +102,7 @@ Item {
             topPadding: px(Style.spacing.xs)
 
             PanelSectionHeader {
-              fontSize: px(Style.font.caption)
+              fontSize: root.fontRow
               text: modelData.title.toUpperCase()
               textFormat: Text.PlainText
               foreground: root.foreground
@@ -128,7 +128,7 @@ Item {
                   textFormat: Text.PlainText
                   color: Color.accent
                   font.family: root.fontFamily
-                  font.pixelSize: px(Style.font.caption)
+                  font.pixelSize: root.fontRow
                 }
 
                 Text {
@@ -141,7 +141,7 @@ Item {
                   textFormat: Text.PlainText
                   color: root.dim
                   font.family: root.fontFamily
-                  font.pixelSize: px(Style.font.caption)
+                  font.pixelSize: root.fontRow
                   elide: Text.ElideRight
                 }
               }
@@ -157,7 +157,7 @@ Item {
           textFormat: Text.PlainText
           color: root.dim
           font.family: root.fontFamily
-          font.pixelSize: px(Style.font.caption)
+          font.pixelSize: root.fontRow
         }
       }
     }

@@ -266,7 +266,7 @@ FocusScope {
         textFormat: Text.PlainText
         color: Color.accent
         font.family: root.fontFamily
-        font.pixelSize: px(Style.font.iconSmall)
+        font.pixelSize: root.fontGlyph
       }
 
       Text {
@@ -275,7 +275,7 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily
-        font.pixelSize: px(Style.font.body)
+        font.pixelSize: root.fontLabel
         font.bold: true
       }
     }
@@ -367,7 +367,7 @@ FocusScope {
                   color: fieldItem.modelData.kind === "bool" && root.form[fieldItem.modelData.key] === true
                     ? Color.accent : root.dim
                   font.family: root.fontFamily
-                  font.pixelSize: px(Style.font.body)
+                  font.pixelSize: root.fontLabel
                 }
 
                 Text {
@@ -382,7 +382,7 @@ FocusScope {
                   textFormat: Text.PlainText
                   color: fieldItem.modelData.kind === "section" ? root.dim : root.foreground
                   font.family: root.fontFamily
-                  font.pixelSize: px(Style.font.caption)
+                  font.pixelSize: root.fontRow
                   font.bold: fieldItem.modelData.kind === "section"
                   elide: Text.ElideRight
                   width: Math.min(implicitWidth, body.width - px(Style.space(24)))
@@ -396,7 +396,7 @@ FocusScope {
                 textFormat: Text.PlainText
                 color: fieldItem.isCurrent ? root.foreground : root.dim
                 font.family: root.fontFamily
-                font.pixelSize: px(Style.font.caption)
+                font.pixelSize: root.fontRow
               }
 
               TextField {
@@ -406,7 +406,7 @@ FocusScope {
                 enabled: !fieldItem.inert
                 foreground: root.foreground
                 font.family: root.fontFamily
-                font.pixelSize: px(Style.font.caption)
+                font.pixelSize: root.fontRow
                 placeholderText: fieldItem.modelData.hint || ""
                 // Bound, never assigned: the delegates outlive a close, and a
                 // one-time copy of the text is what left last time's typing on
@@ -445,7 +445,7 @@ FocusScope {
                     opacity: modelData.usable === false ? 0.55 : 1.0
                     color: index === root.templateIndex ? Color.accent : root.dim
                     font.family: root.fontFamily
-                    font.pixelSize: px(Style.font.caption)
+                    font.pixelSize: root.fontRow
                     elide: Text.ElideRight
 
                     MouseArea {
@@ -473,7 +473,7 @@ FocusScope {
                     textFormat: Text.PlainText
                     color: index === root.imageIndex ? Color.accent : root.dim
                     font.family: root.fontFamily
-                    font.pixelSize: px(Style.font.caption)
+                    font.pixelSize: root.fontRow
                     elide: Text.ElideRight
 
                     MouseArea {
@@ -495,7 +495,7 @@ FocusScope {
                 color: fieldItem.error !== "" || (fieldItem.modelData.kind === "template" && root.templateNotice !== "")
                   ? Color.urgent : root.dim
                 font.family: root.fontFamily
-                font.pixelSize: px(Style.font.caption)
+                font.pixelSize: root.fontRow
                 wrapMode: Text.WordWrap
               }
             }
@@ -522,7 +522,7 @@ FocusScope {
       color: root.foreground
       opacity: 0.65
       font.family: root.fontFamily
-      font.pixelSize: px(Style.font.caption)
+      font.pixelSize: root.fontRow
     }
   }
 }

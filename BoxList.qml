@@ -135,7 +135,7 @@ Item {
     }
 
     PanelToolTip {
-      fontSize: px(Style.font.bodySmall)
+      fontSize: root.fontLabel
       visible: rowMouse.containsMouse
       text: "Enter " + rowSurface.row.name + " in a terminal  (enter)"
       fontFamily: root.fontFamily
@@ -186,7 +186,7 @@ Item {
           textFormat: Text.PlainText
           color: root.foreground
           font.family: root.fontFamily
-          font.pixelSize: px(Style.font.body)
+          font.pixelSize: root.fontLabel
           font.bold: rowSurface.row.up
           elide: Text.ElideRight
         }
@@ -198,7 +198,7 @@ Item {
           visible: text !== ""
           color: root.dim
           font.family: root.fontFamily
-          font.pixelSize: px(Style.font.caption)
+          font.pixelSize: root.fontRow
           elide: Text.ElideRight
         }
 
@@ -211,7 +211,7 @@ Item {
           color: rowSurface.rowPending ? Color.accent
             : (rowSurface.row.failing ? Color.urgent : root.dim)
           font.family: root.fontFamily
-          font.pixelSize: px(Style.font.caption)
+          font.pixelSize: root.fontRow
           elide: Text.ElideRight
         }
       }
@@ -236,7 +236,7 @@ Item {
             foreground: root.foreground
             hoverColor: modelData.danger ? Color.urgent : root.foreground
             fontFamily: root.fontFamily
-            fontSize: px(Style.font.iconSmall)
+            fontSize: root.fontGlyph
             size: px(Style.space(22))
             onClicked: root.actionRequested(rowSurface.row.name, modelData.verb)
           }

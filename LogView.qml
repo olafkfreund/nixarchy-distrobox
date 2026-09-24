@@ -92,7 +92,7 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.running ? Color.accent : (root.exitCode > 0 ? Color.urgent : root.dim)
         font.family: root.fontFamily
-        font.pixelSize: px(Style.font.iconSmall)
+        font.pixelSize: root.fontGlyph
       }
 
       Text {
@@ -102,7 +102,7 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily
-        font.pixelSize: px(Style.font.body)
+        font.pixelSize: root.fontLabel
         elide: Text.ElideRight
       }
 
@@ -112,7 +112,7 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.running ? Color.accent : (root.exitCode > 0 ? Color.urgent : root.dim)
         font.family: root.fontFamily
-        font.pixelSize: px(Style.font.caption)
+        font.pixelSize: root.fontRow
       }
     }
 
@@ -136,7 +136,7 @@ FocusScope {
         wrapMode: Text.Wrap
         color: String(modelData).indexOf("── exit") === 0 ? (root.exitCode > 0 ? Color.urgent : Color.accent) : root.dim
         font.family: root.fontFamily
-        font.pixelSize: px(Style.font.caption)
+        font.pixelSize: root.fontRow
       }
     }
 
@@ -149,7 +149,7 @@ FocusScope {
       color: root.foreground
       opacity: 0.65
       font.family: root.fontFamily
-      font.pixelSize: px(Style.font.caption)
+      font.pixelSize: root.fontRow
     }
   }
 }
