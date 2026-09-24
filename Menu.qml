@@ -25,9 +25,17 @@ Item {
   property var targetScreen: null
 
   // A full-screen surface is read from further away than a bar popup, so the
-  // whole view is drawn larger: the same factor nixarchy-pkg's menu uses.
-  // Safe here because nothing in the view pops up (no QQC Popup ignores it).
-  readonly property real uiScale: 1.45
+  // whole view is drawn larger. The factor AND the mechanism are nixarchy-pkg's
+  // (and nixarchy-flatsnap's): a layout-time multiplier, `px(base)`, applied to
+  // every size token inside the view.
+  //
+  // It used to be `scale: 1.45`, an Item transform. That magnified the view
+  // after it had been laid out, so wrapping and eliding were computed at the
+  // smaller size and then stretched, and the view never reflowed to the space
+  // it was actually given. The comment here claimed it matched nixarchy-pkg,
+  // which was true of the number and false of the mechanism -- which is how
+  // the divergence survived. Do not reintroduce a `scale:` transform.
+  readonly property real textScale: 1.45
   readonly property int viewWidth: Style.space(680)
 
   function focusedScreen() {
@@ -109,9 +117,11 @@ Item {
 
     BorderSurface {
       id: card
-      width: Math.min(Math.round(root.viewWidth * root.uiScale) + card.contentLeftInset + card.contentRightInset,
+      width: Math.min(Math.round(root.viewWidth * root.textScale) + card.contentLeftInset + card.contentRightInset,
                       Math.round(panel.width * 0.9))
-      height: Math.min(Math.round(view.implicitHeight * root.uiScale) + card.contentTopInset + card.contentBottomInset,
+      // view.implicitHeight is already at textScale: the view multiplies its
+      // own tokens, so there is nothing left to multiply here.
+      height: Math.min(view.implicitHeight + card.contentTopInset + card.contentBottomInset,
                        Math.round(panel.height * 0.8))
       anchors.horizontalCenter: parent.horizontalCenter
       // A fixed top edge: the card grows and shrinks downwards only, so it
@@ -135,12 +145,11 @@ Item {
 
         DistroboxView {
           id: view
-          // Laid out at its natural size, then drawn uiScale times larger;
-          // input is mapped through the same transform, so clicks still land.
-          width: frame.width / root.uiScale
-          height: frame.height / root.uiScale
-          scale: root.uiScale
-          transformOrigin: Item.TopLeft
+          // Laid out at the size the frame actually has, at textScale, so
+          // text wraps and elides at the width it is drawn at.
+          width: frame.width
+          height: frame.height
+          textScale: root.textScale
           foreground: Color.foreground
           fontFamily: Style.font.family
           onCloseRequested: root.close()
