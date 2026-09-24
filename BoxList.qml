@@ -23,10 +23,6 @@ Item {
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
 
-  // Set by the host: the menu passes 1.45, the bar popup leaves it 1.0.
-  // A layout-time multiplier, never a `scale:` transform -- see DistroboxView.
-  property real textScale: 1.0
-  function px(base) { return Math.round(base * root.textScale) }
 
   // Resolved by DistroboxView from its token set; never computed here.
   property int fontRow: Style.font.caption
@@ -36,7 +32,7 @@ Item {
   property int fontHero: Style.font.display
 
 
-  property int maxHeight: px(Style.space(520))
+  property int maxHeight: Style.space(520)
 
   readonly property color dim: Qt.darker(foreground, 1.5)
   readonly property int count: rowModel.count
@@ -82,7 +78,7 @@ Item {
     width: parent.width
     height: rowModel.count > 0 ? Math.min(contentHeight, root.maxHeight) : 0
     visible: rowModel.count > 0
-    spacing: px(Style.spacing.sm)
+    spacing: Style.spacing.sm
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     interactive: contentHeight > height
@@ -120,7 +116,7 @@ Item {
 
     hasCursor: root.cursorActive && rowIndex === root.cursorIndex
     foreground: root.foreground
-    implicitHeight: rowContent.implicitHeight + px(Style.spacing.xxl)
+    implicitHeight: rowContent.implicitHeight + Style.spacing.xxl
     height: implicitHeight
     opacity: rowSurface.rowPending ? 0.7 : 1.0
 
@@ -146,13 +142,13 @@ Item {
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.verticalCenter: parent.verticalCenter
-      anchors.leftMargin: px(Style.spacing.xl)
-      anchors.rightMargin: px(Style.spacing.xl)
+      anchors.leftMargin: Style.spacing.xl
+      anchors.rightMargin: Style.spacing.xl
       implicitHeight: Math.max(identity.implicitHeight, rowActions.implicitHeight)
 
       Rectangle {
         id: stateDot
-        width: px(Style.space(7))
+        width: Style.space(7)
         height: width
         radius: width / 2
         anchors.left: parent.left
@@ -174,11 +170,11 @@ Item {
       Column {
         id: identity
         anchors.left: stateDot.right
-        anchors.leftMargin: px(Style.spacing.xl)
+        anchors.leftMargin: Style.spacing.xl
         anchors.right: rowActions.left
-        anchors.rightMargin: px(Style.spacing.lg)
+        anchors.rightMargin: Style.spacing.lg
         anchors.verticalCenter: parent.verticalCenter
-        spacing: px(Style.spacing.xxs)
+        spacing: Style.spacing.xxs
 
         Text {
           width: parent.width
@@ -219,9 +215,9 @@ Item {
       Row {
         id: rowActions
         anchors.right: parent.right
-        anchors.rightMargin: px(Style.spacing.md)
+        anchors.rightMargin: Style.spacing.md
         anchors.verticalCenter: parent.verticalCenter
-        spacing: px(Style.spacing.xxs)
+        spacing: Style.spacing.xxs
 
         Repeater {
           model: rowSurface.actions
@@ -237,7 +233,7 @@ Item {
             hoverColor: modelData.danger ? Color.urgent : root.foreground
             fontFamily: root.fontFamily
             fontSize: root.fontGlyph
-            size: px(Style.space(22))
+            size: Style.space(22)
             onClicked: root.actionRequested(rowSurface.row.name, modelData.verb)
           }
         }

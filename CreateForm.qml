@@ -23,10 +23,6 @@ FocusScope {
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
 
-  // Set by the host: the menu passes 1.45, the bar popup leaves it 1.0.
-  // A layout-time multiplier, never a `scale:` transform -- see DistroboxView.
-  property real textScale: 1.0
-  function px(base) { return Math.round(base * root.textScale) }
 
   // Resolved by DistroboxView from its token set; never computed here.
   property int fontRow: Style.font.caption
@@ -38,7 +34,7 @@ FocusScope {
 
   // Set by the host from the room it actually has; the default is what this
   // was fixed at before, for a host that assigns nothing.
-  property int maxHeight: px(Style.space(400))
+  property int maxHeight: Style.space(400)
 
   readonly property color dim: Qt.darker(foreground, 1.5)
 
@@ -254,11 +250,11 @@ FocusScope {
   Column {
     id: formColumn
     anchors.fill: parent
-    spacing: px(Style.spacing.md)
+    spacing: Style.spacing.md
 
     Row {
       width: parent.width
-      spacing: px(Style.spacing.md)
+      spacing: Style.spacing.md
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -298,8 +294,8 @@ FocusScope {
 
       Column {
         id: fieldsColumn
-        width: flick.width - px(Style.spacing.md)
-        spacing: px(Style.spacing.xs)
+        width: flick.width - Style.spacing.md
+        spacing: Style.spacing.xs
 
         Repeater {
           id: fieldRepeater
@@ -321,7 +317,7 @@ FocusScope {
             function takeFocus() { input.forceActiveFocus() }
 
             width: fieldsColumn.width
-            implicitHeight: body.implicitHeight + px(Style.spacing.sm) * 2
+            implicitHeight: body.implicitHeight + Style.spacing.sm * 2
             opacity: inert ? 0.45 : 1.0
 
             CursorSurface {
@@ -344,15 +340,15 @@ FocusScope {
               anchors.left: parent.left
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
-              anchors.leftMargin: px(Style.spacing.lg)
-              anchors.rightMargin: px(Style.spacing.lg)
-              spacing: px(Style.spacing.xs)
+              anchors.leftMargin: Style.spacing.lg
+              anchors.rightMargin: Style.spacing.lg
+              spacing: Style.spacing.xs
 
               // bool / section / clone: one line with a state glyph.
               Row {
                 visible: !fieldItem.takesText
                 width: parent.width
-                spacing: px(Style.spacing.md)
+                spacing: Style.spacing.md
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
@@ -385,7 +381,7 @@ FocusScope {
                   font.pixelSize: root.fontRow
                   font.bold: fieldItem.modelData.kind === "section"
                   elide: Text.ElideRight
-                  width: Math.min(implicitWidth, body.width - px(Style.space(24)))
+                  width: Math.min(implicitWidth, body.width - Style.space(24))
                 }
               }
 

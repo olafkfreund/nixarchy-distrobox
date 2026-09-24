@@ -18,10 +18,6 @@ FocusScope {
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
 
-  // Set by the host: the menu passes 1.45, the bar popup leaves it 1.0.
-  // A layout-time multiplier, never a `scale:` transform -- see DistroboxView.
-  property real textScale: 1.0
-  function px(base) { return Math.round(base * root.textScale) }
 
   // Resolved by DistroboxView from its token set; never computed here.
   property int fontRow: Style.font.caption
@@ -33,7 +29,7 @@ FocusScope {
 
   // Set by the host from the room it actually has; the default is what this
   // was fixed at before, for a host that assigns nothing.
-  property int maxHeight: px(Style.space(340))
+  property int maxHeight: Style.space(340)
 
   readonly property color dim: Qt.darker(foreground, 1.5)
 
@@ -42,7 +38,7 @@ FocusScope {
   signal backRequested()
   signal cancelRequested()
 
-  implicitHeight: header.implicitHeight + px(Style.spacing.md) + logList.height + px(Style.spacing.md) + hint.implicitHeight
+  implicitHeight: header.implicitHeight + Style.spacing.md + logList.height + Style.spacing.md + hint.implicitHeight
 
   function toEnd() {
     root.follow = true
@@ -51,7 +47,7 @@ FocusScope {
 
   function scroll(direction) {
     root.follow = false
-    var step = px(Style.space(18)) * 3 * direction
+    var step = Style.space(18) * 3 * direction
     logList.contentY = Math.max(0, Math.min(logList.contentHeight - logList.height, logList.contentY + step))
     if (logList.atYEnd) root.follow = true
   }
@@ -79,12 +75,12 @@ FocusScope {
 
   Column {
     anchors.fill: parent
-    spacing: px(Style.spacing.md)
+    spacing: Style.spacing.md
 
     Row {
       id: header
       width: parent.width
-      spacing: px(Style.spacing.md)
+      spacing: Style.spacing.md
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -97,7 +93,7 @@ FocusScope {
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
-        width: parent.width - px(Style.space(120))
+        width: parent.width - Style.space(120)
         text: root.title
         textFormat: Text.PlainText
         color: root.foreground

@@ -24,18 +24,22 @@ Item {
   property bool opened: false
   property var targetScreen: null
 
-  // A full-screen surface is read from further away than a bar popup, so the
-  // whole view is drawn larger. The factor AND the mechanism are nixarchy-pkg's
-  // (and nixarchy-flatsnap's): a layout-time multiplier, `px(base)`, applied to
-  // every size token inside the view.
+  // A full-screen surface is read from further away than a bar popup, so it
+  // is drawn larger -- but by picking LARGER TOKENS, never by a factor.
   //
-  // It used to be `scale: 1.45`, an Item transform. That magnified the view
-  // after it had been laid out, so wrapping and eliding were computed at the
-  // smaller size and then stretched, and the view never reflowed to the space
-  // it was actually given. The comment here claimed it matched nixarchy-pkg,
-  // which was true of the number and false of the mechanism -- which is how
-  // the divergence survived. Do not reintroduce a `scale:` transform.
-  readonly property real textScale: 1.45
+  // `large: true` on the view moves each of its named text roles up a rung of
+  // the shell's own ladder, and the card is wider because viewWidth is 680
+  // where the popup's is 470. Both of those already scale with [font]
+  // base-size (omarchy display text size), so the menu now moves in step with
+  // the rest of the desktop instead of sitting a fixed 45% above it, and a
+  // theme that pins a font token is honoured.
+  //
+  // Two things not to reintroduce. A `scale:` transform (what this was
+  // originally) magnifies the view after layout, so wrapping and eliding are
+  // computed at the wrong size and then stretched. A flat multiplier (what
+  // replaced it) keeps this surface a fixed percentage above every other one
+  // at every text size, and overrides a pinned token. `nix flake check` has a
+  // `no-text-multiplier` check that fails on either.
   readonly property int viewWidth: Style.space(680)
 
   function focusedScreen() {
@@ -117,10 +121,8 @@ Item {
 
     BorderSurface {
       id: card
-      width: Math.min(Math.round(root.viewWidth * root.textScale) + card.contentLeftInset + card.contentRightInset,
+      width: Math.min(root.viewWidth + card.contentLeftInset + card.contentRightInset,
                       Math.round(panel.width * 0.9))
-      // view.implicitHeight is already at textScale: the view multiplies its
-      // own tokens, so there is nothing left to multiply here.
       height: Math.min(view.implicitHeight + card.contentTopInset + card.contentBottomInset,
                        Math.round(panel.height * 0.8))
       anchors.horizontalCenter: parent.horizontalCenter
@@ -145,11 +147,11 @@ Item {
 
         DistroboxView {
           id: view
-          // Laid out at the size the frame actually has, at textScale, so
-          // text wraps and elides at the width it is drawn at.
+          // Laid out at the size the frame actually has, so text wraps and
+          // elides at the width it is drawn at.
           width: frame.width
           height: frame.height
-          textScale: root.textScale
+          large: true
           // The room the monitor allows, matching the card's own 0.8 clamp.
           // From panel.height, never from frame.height: the card is sized from
           // this view's implicitHeight, so feeding our own height back in would
