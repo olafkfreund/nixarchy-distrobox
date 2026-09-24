@@ -242,11 +242,11 @@ FocusScope {
   Column {
     id: formColumn
     anchors.fill: parent
-    spacing: Style.spacing.md
+    spacing: px(Style.spacing.md)
 
     Row {
       width: parent.width
-      spacing: Style.spacing.md
+      spacing: px(Style.spacing.md)
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -254,7 +254,7 @@ FocusScope {
         textFormat: Text.PlainText
         color: Color.accent
         font.family: root.fontFamily
-        font.pixelSize: Style.font.iconSmall
+        font.pixelSize: px(Style.font.iconSmall)
       }
 
       Text {
@@ -263,7 +263,7 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: px(Style.font.body)
         font.bold: true
       }
     }
@@ -271,7 +271,7 @@ FocusScope {
     Flickable {
       id: flick
       width: parent.width
-      height: Math.min(fieldsColumn.implicitHeight, Style.space(400))
+      height: Math.min(fieldsColumn.implicitHeight, px(Style.space(400)))
       contentHeight: fieldsColumn.implicitHeight
       clip: true
       boundsBehavior: Flickable.StopAtBounds
@@ -286,8 +286,8 @@ FocusScope {
 
       Column {
         id: fieldsColumn
-        width: flick.width - Style.spacing.md
-        spacing: Style.spacing.xs
+        width: flick.width - px(Style.spacing.md)
+        spacing: px(Style.spacing.xs)
 
         Repeater {
           id: fieldRepeater
@@ -309,7 +309,7 @@ FocusScope {
             function takeFocus() { input.forceActiveFocus() }
 
             width: fieldsColumn.width
-            implicitHeight: body.implicitHeight + Style.spacing.sm * 2
+            implicitHeight: body.implicitHeight + px(Style.spacing.sm) * 2
             opacity: inert ? 0.45 : 1.0
 
             CursorSurface {
@@ -332,15 +332,15 @@ FocusScope {
               anchors.left: parent.left
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
-              anchors.leftMargin: Style.spacing.lg
-              anchors.rightMargin: Style.spacing.lg
-              spacing: Style.spacing.xs
+              anchors.leftMargin: px(Style.spacing.lg)
+              anchors.rightMargin: px(Style.spacing.lg)
+              spacing: px(Style.spacing.xs)
 
               // bool / section / clone: one line with a state glyph.
               Row {
                 visible: !fieldItem.takesText
                 width: parent.width
-                spacing: Style.spacing.md
+                spacing: px(Style.spacing.md)
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
@@ -355,7 +355,7 @@ FocusScope {
                   color: fieldItem.modelData.kind === "bool" && root.form[fieldItem.modelData.key] === true
                     ? Color.accent : root.dim
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
+                  font.pixelSize: px(Style.font.body)
                 }
 
                 Text {
@@ -370,10 +370,10 @@ FocusScope {
                   textFormat: Text.PlainText
                   color: fieldItem.modelData.kind === "section" ? root.dim : root.foreground
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: px(Style.font.caption)
                   font.bold: fieldItem.modelData.kind === "section"
                   elide: Text.ElideRight
-                  width: Math.min(implicitWidth, body.width - Style.space(24))
+                  width: Math.min(implicitWidth, body.width - px(Style.space(24)))
                 }
               }
 
@@ -384,7 +384,7 @@ FocusScope {
                 textFormat: Text.PlainText
                 color: fieldItem.isCurrent ? root.foreground : root.dim
                 font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
+                font.pixelSize: px(Style.font.caption)
               }
 
               TextField {
@@ -394,7 +394,7 @@ FocusScope {
                 enabled: !fieldItem.inert
                 foreground: root.foreground
                 font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
+                font.pixelSize: px(Style.font.caption)
                 placeholderText: fieldItem.modelData.hint || ""
                 // Bound, never assigned: the delegates outlive a close, and a
                 // one-time copy of the text is what left last time's typing on
@@ -433,7 +433,7 @@ FocusScope {
                     opacity: modelData.usable === false ? 0.55 : 1.0
                     color: index === root.templateIndex ? Color.accent : root.dim
                     font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
+                    font.pixelSize: px(Style.font.caption)
                     elide: Text.ElideRight
 
                     MouseArea {
@@ -461,7 +461,7 @@ FocusScope {
                     textFormat: Text.PlainText
                     color: index === root.imageIndex ? Color.accent : root.dim
                     font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
+                    font.pixelSize: px(Style.font.caption)
                     elide: Text.ElideRight
 
                     MouseArea {
@@ -483,7 +483,7 @@ FocusScope {
                 color: fieldItem.error !== "" || (fieldItem.modelData.kind === "template" && root.templateNotice !== "")
                   ? Color.urgent : root.dim
                 font.family: root.fontFamily
-                font.pixelSize: Style.font.caption
+                font.pixelSize: px(Style.font.caption)
                 wrapMode: Text.WordWrap
               }
             }
@@ -510,7 +510,7 @@ FocusScope {
       color: root.foreground
       opacity: 0.65
       font.family: root.fontFamily
-      font.pixelSize: Style.font.caption
+      font.pixelSize: px(Style.font.caption)
     }
   }
 }

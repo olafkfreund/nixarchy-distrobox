@@ -29,7 +29,7 @@ Item {
   onOpenedChanged: if (opened) flick.contentY = 0
 
   function scroll(direction) {
-    var step = Style.space(60) * direction
+    var step = px(Style.space(60)) * direction
     flick.contentY = Math.max(0, Math.min(flick.contentHeight - flick.height, flick.contentY + step))
   }
 
@@ -46,8 +46,8 @@ Item {
     Flickable {
       id: flick
       anchors.fill: parent
-      anchors.leftMargin: Style.spacing.md
-      anchors.rightMargin: Style.spacing.md
+      anchors.leftMargin: px(Style.spacing.md)
+      anchors.rightMargin: px(Style.spacing.md)
       contentHeight: sheetColumn.implicitHeight
       clip: true
       boundsBehavior: Flickable.StopAtBounds
@@ -56,11 +56,11 @@ Item {
         id: sheetColumn
         width: flick.width
         y: Math.max(0, (flick.height - implicitHeight) / 2)
-        spacing: Style.spacing.lg
+        spacing: px(Style.spacing.lg)
 
         Row {
           width: parent.width
-          spacing: Style.spacing.md
+          spacing: px(Style.spacing.md)
 
           Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -68,7 +68,7 @@ Item {
             textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: Style.font.icon
+            font.pixelSize: px(Style.font.icon)
           }
 
           Text {
@@ -77,7 +77,7 @@ Item {
             textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: px(Style.font.caption)
             font.bold: true
             font.letterSpacing: 1.2
           }
@@ -90,8 +90,8 @@ Item {
             required property var modelData
 
             width: parent.width
-            spacing: Style.spacing.xs
-            topPadding: Style.spacing.xs
+            spacing: px(Style.spacing.xs)
+            topPadding: px(Style.spacing.xs)
 
             PanelSectionHeader {
               text: modelData.title.toUpperCase()
@@ -107,32 +107,32 @@ Item {
                 required property var modelData
 
                 width: parent.width
-                implicitHeight: entryText.implicitHeight + Style.spacing.xs
+                implicitHeight: entryText.implicitHeight + px(Style.spacing.xs)
                 height: implicitHeight
 
                 Text {
                   id: entryKeys
                   anchors.left: parent.left
                   anchors.verticalCenter: parent.verticalCenter
-                  width: Style.space(90)
+                  width: px(Style.space(90))
                   text: modelData.keys
                   textFormat: Text.PlainText
                   color: Color.accent
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: px(Style.font.caption)
                 }
 
                 Text {
                   id: entryText
                   anchors.left: entryKeys.right
-                  anchors.leftMargin: Style.spacing.md
+                  anchors.leftMargin: px(Style.spacing.md)
                   anchors.right: parent.right
                   anchors.verticalCenter: parent.verticalCenter
                   text: modelData.text
                   textFormat: Text.PlainText
                   color: root.dim
                   font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: px(Style.font.caption)
                   elide: Text.ElideRight
                 }
               }
@@ -142,13 +142,13 @@ Item {
 
         Text {
           width: parent.width
-          topPadding: Style.spacing.md
+          topPadding: px(Style.spacing.md)
           horizontalAlignment: Text.AlignHCenter
           text: "j k scroll · press ? or esc to go back"
           textFormat: Text.PlainText
           color: root.dim
           font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
+          font.pixelSize: px(Style.font.caption)
         }
       }
     }

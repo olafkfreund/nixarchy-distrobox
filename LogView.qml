@@ -30,7 +30,7 @@ FocusScope {
   signal backRequested()
   signal cancelRequested()
 
-  implicitHeight: header.implicitHeight + Style.spacing.md + logList.height + Style.spacing.md + hint.implicitHeight
+  implicitHeight: header.implicitHeight + px(Style.spacing.md) + logList.height + px(Style.spacing.md) + hint.implicitHeight
 
   function toEnd() {
     root.follow = true
@@ -39,7 +39,7 @@ FocusScope {
 
   function scroll(direction) {
     root.follow = false
-    var step = Style.space(18) * 3 * direction
+    var step = px(Style.space(18)) * 3 * direction
     logList.contentY = Math.max(0, Math.min(logList.contentHeight - logList.height, logList.contentY + step))
     if (logList.atYEnd) root.follow = true
   }
@@ -67,12 +67,12 @@ FocusScope {
 
   Column {
     anchors.fill: parent
-    spacing: Style.spacing.md
+    spacing: px(Style.spacing.md)
 
     Row {
       id: header
       width: parent.width
-      spacing: Style.spacing.md
+      spacing: px(Style.spacing.md)
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -80,17 +80,17 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.running ? Color.accent : (root.exitCode > 0 ? Color.urgent : root.dim)
         font.family: root.fontFamily
-        font.pixelSize: Style.font.iconSmall
+        font.pixelSize: px(Style.font.iconSmall)
       }
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
-        width: parent.width - Style.space(120)
+        width: parent.width - px(Style.space(120))
         text: root.title
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: px(Style.font.body)
         elide: Text.ElideRight
       }
 
@@ -100,14 +100,14 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.running ? Color.accent : (root.exitCode > 0 ? Color.urgent : root.dim)
         font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
+        font.pixelSize: px(Style.font.caption)
       }
     }
 
     ListView {
       id: logList
       width: parent.width
-      height: Style.space(340)
+      height: px(Style.space(340))
       clip: true
       boundsBehavior: Flickable.StopAtBounds
       model: root.lines
@@ -124,7 +124,7 @@ FocusScope {
         wrapMode: Text.Wrap
         color: String(modelData).indexOf("── exit") === 0 ? (root.exitCode > 0 ? Color.urgent : Color.accent) : root.dim
         font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
+        font.pixelSize: px(Style.font.caption)
       }
     }
 
@@ -137,7 +137,7 @@ FocusScope {
       color: root.foreground
       opacity: 0.65
       font.family: root.fontFamily
-      font.pixelSize: Style.font.caption
+      font.pixelSize: px(Style.font.caption)
     }
   }
 }

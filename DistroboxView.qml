@@ -326,7 +326,7 @@ FocusScope {
       Column {
         id: column
         anchors.fill: parent
-        spacing: Style.spacing.panelGap
+        spacing: px(Style.spacing.panelGap)
 
         PanelHero {
           title: "Distrobox"
@@ -339,11 +339,11 @@ FocusScope {
             text: Model.Glyph.box
             color: DistroboxState.counts.failing > 0 ? Color.urgent : root.foreground
             font.family: root.fontFamily
-            font.pixelSize: Style.font.display
+            font.pixelSize: px(Style.font.display)
           }
 
           trailingControl: Row {
-            spacing: Style.spacing.sm
+            spacing: px(Style.spacing.sm)
 
             PanelActionButton {
               iconText: Model.Glyph.keyboard
@@ -480,9 +480,9 @@ FocusScope {
         Column {
           visible: root.mode === "list" && list.count === 0
           width: parent.width
-          spacing: Style.spacing.sm
-          topPadding: Style.spacing.lg
-          bottomPadding: Style.spacing.lg
+          spacing: px(Style.spacing.sm)
+          topPadding: px(Style.spacing.lg)
+          bottomPadding: px(Style.spacing.lg)
 
           Text {
             width: parent.width
@@ -497,7 +497,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: Style.font.body
+            font.pixelSize: px(Style.font.body)
             wrapMode: Text.WordWrap
           }
 
@@ -509,7 +509,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: px(Style.font.caption)
             wrapMode: Text.WordWrap
             lineHeight: 1.3
           }
@@ -522,7 +522,7 @@ FocusScope {
 
         Rectangle {
           width: parent.width
-          height: Math.max(1, Style.space(1))
+          height: Math.max(1, px(Style.space(1)))
           color: root.dim
           opacity: 0.25
         }
@@ -543,21 +543,21 @@ FocusScope {
             textFormat: Text.PlainText
             color: Color.urgent
             font.family: root.fontFamily
-            font.pixelSize: Style.font.iconSmall
+            font.pixelSize: px(Style.font.iconSmall)
           }
 
           Text {
             id: errorText
             anchors.left: errorGlyph.right
-            anchors.leftMargin: Style.spacing.md
+            anchors.leftMargin: px(Style.spacing.md)
             anchors.right: errorDismiss.left
-            anchors.rightMargin: Style.spacing.md
+            anchors.rightMargin: px(Style.spacing.md)
             anchors.top: parent.top
             text: DistroboxState.lastError
             textFormat: Text.PlainText
             color: Color.urgent
             font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: px(Style.font.caption)
             wrapMode: Text.WordWrap
           }
 
@@ -565,13 +565,13 @@ FocusScope {
             id: errorDismiss
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: -Style.spacing.xs
+            anchors.topMargin: -px(Style.spacing.xs)
             iconText: Model.Glyph.close
             tooltipText: "Dismiss"
             foreground: root.foreground
             fontFamily: root.fontFamily
-            fontSize: Style.font.iconSmall
-            size: Style.space(20)
+            fontSize: px(Style.font.iconSmall)
+            size: px(Style.space(20))
             onClicked: DistroboxState.lastError = ""
           }
         }
@@ -590,7 +590,7 @@ FocusScope {
           textFormat: Text.PlainText
           color: DistroboxState.streaming ? Color.accent : root.dim
           font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
+          font.pixelSize: px(Style.font.caption)
           elide: Text.ElideRight
         }
 
@@ -606,7 +606,7 @@ FocusScope {
             textFormat: Text.PlainText
             color: root.dim
             font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: px(Style.font.caption)
           }
 
           Text {
@@ -616,7 +616,7 @@ FocusScope {
             color: root.foreground
             opacity: 0.65
             font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
+            font.pixelSize: px(Style.font.caption)
           }
         }
       }
