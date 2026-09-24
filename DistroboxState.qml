@@ -158,10 +158,24 @@ Singleton {
   // The queues are cleared FIRST. onExited starts the next command while one
   // is waiting, so cancelling with a queue still loaded would hand the lock
   // straight to the next box instead of giving it back.
-  // Kills what `proc` started. Skipped silently when the pid is not yet
-  // assigned; the SIGTERM below still happens.
-  function killChildren(proc) {
-    var argv = Model.killChildrenArgv(proc.processId)
+  // Stops everything the command started, not just the command.
+  //
+  // Every mutation is spawned through Model.detached(), so it leads a session
+  // of its own and one group signal reaches the whole tree -- `distrobox` is a
+  // chain of bash scripts, measured four levels deep before the engine, so
+  // signalling only the process we spawned left the engine pulling.
+  //
+  // This is safe ONLY because Quickshell does not setsid its own Process
+  // children: ours therefore is not already a group leader, `setsid` does not
+  // fork, and processId is the session leader we are signalling. If that ever
+  // changes upstream, setsid would fork, processId would be a wrapper that
+  // exits at once, and the lock would release while the work continued.
+  // `pgid == processId` is the thing to check if this ever misbehaves.
+  //
+  // Skipped silently when the pid is not yet assigned; the SIGTERM still
+  // happens.
+  function killGroup(proc) {
+    var argv = Model.killGroupArgv(proc.processId)
     if (!argv || killProcess.running) return
     killProcess.command = argv
     killProcess.running = true
@@ -175,23 +189,15 @@ Singleton {
     root.queue = []
     root.streamQueue = []
     root.streamAll = false
-    // Descendants FIRST, then the process itself.
-    //
-    // `running = false` SIGTERMs only what we spawned. `distrobox create`
-    // spawns the engine, so the engine is a grandchild and outlives it -- it
-    // keeps pulling with nothing on screen to say so. pkill -P matches on
-    // PARENT pid, so it has to run while that parent is still alive: kill the
-    // parent first and its children are reparented to init, the link is gone,
-    // and the pull survives. That failure still looks correct, because the
-    // lock releases either way.
-    //
-    // One level, not recursive -- see Model.killChildrenArgv.
+    // The group first, then the process itself. `running = false` SIGTERMs
+    // only what we spawned, which is the head of a bash chain; the group
+    // signal is what reaches the engine at the end of it.
     if (target.process === "stream") {
       root.appendLog("── cancelled")
-      root.killChildren(streamProcess)
+      root.killGroup(streamProcess)
       streamProcess.running = false
     } else {
-      root.killChildren(actionProcess)
+      root.killGroup(actionProcess)
       actionProcess.running = false
     }
     root.lastError = target.label + " cancelled"

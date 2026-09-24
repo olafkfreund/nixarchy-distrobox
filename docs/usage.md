@@ -26,8 +26,8 @@ one exception is entering a box, which opens a terminal by design.
   `DBX_CONTAINER_MANAGER` set to it.
 - **`omarchy-launch-tui`** opens the terminal for Enter. **`wl-copy`** copies
   names and snippets. Omarchy ships both.
-- **`pkill`** (from procps), so that cancelling with `K` also stops the engine
-  the command started, and not just the command.
+- **`setsid`** (util-linux) and **`kill`** (coreutils), so that cancelling with
+  `K` stops the engine the command started, and not just the command.
 
 A command that is missing fails silently inside the shell, so check these first
 when nothing happens.
