@@ -505,6 +505,16 @@ function errorText(raw) {
   return chosen ? sanitize(chosen.replace(/^Error(?: response from daemon)?:\s*/i, ""), 160) : ""
 }
 
+// The refusal shown when a second mutation is asked for. It names the key that
+// gets the lock back: without that, a wedged command looks unrecoverable and
+// the only way out is restarting the shell.
+function busyText(streaming, streamTitle, pendingVerb, pendingName) {
+  var target = cancelTarget(true, streaming, streamTitle, pendingVerb, pendingName)
+  if (!target) return ""
+  return "Busy: " + target.label
+    + (target.process === "stream" ? " — press o to watch, X to cancel" : " — X to cancel")
+}
+
 // What a cancel should stop right now, or null when nothing is cancellable.
 //
 // The lock is derived from the processes (`mutating`, `streaming`), never from
