@@ -17,6 +17,16 @@ FocusScope {
 
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
+
+  // Set by the host: the menu passes 1.45, the bar popup leaves it 1.0.
+  // A layout-time multiplier, never a `scale:` transform -- see DistroboxView.
+  property real textScale: 1.0
+  function px(base) { return Math.round(base * root.textScale) }
+
+  // Set by the host from the room it actually has; the default is what this
+  // was fixed at before, for a host that assigns nothing.
+  property int maxHeight: px(Style.space(340))
+
   readonly property color dim: Qt.darker(foreground, 1.5)
 
   property bool follow: true
@@ -24,7 +34,7 @@ FocusScope {
   signal backRequested()
   signal cancelRequested()
 
-  implicitHeight: header.implicitHeight + Style.spacing.md + logList.height + Style.spacing.md + hint.implicitHeight
+  implicitHeight: header.implicitHeight + px(Style.spacing.md) + logList.height + px(Style.spacing.md) + hint.implicitHeight
 
   function toEnd() {
     root.follow = true
@@ -33,7 +43,7 @@ FocusScope {
 
   function scroll(direction) {
     root.follow = false
-    var step = Style.space(18) * 3 * direction
+    var step = px(Style.space(18)) * 3 * direction
     logList.contentY = Math.max(0, Math.min(logList.contentHeight - logList.height, logList.contentY + step))
     if (logList.atYEnd) root.follow = true
   }
@@ -61,12 +71,12 @@ FocusScope {
 
   Column {
     anchors.fill: parent
-    spacing: Style.spacing.md
+    spacing: px(Style.spacing.md)
 
     Row {
       id: header
       width: parent.width
-      spacing: Style.spacing.md
+      spacing: px(Style.spacing.md)
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -74,17 +84,17 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.running ? Color.accent : (root.exitCode > 0 ? Color.urgent : root.dim)
         font.family: root.fontFamily
-        font.pixelSize: Style.font.iconSmall
+        font.pixelSize: px(Style.font.iconSmall)
       }
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
-        width: parent.width - Style.space(120)
+        width: parent.width - px(Style.space(120))
         text: root.title
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily
-        font.pixelSize: Style.font.body
+        font.pixelSize: px(Style.font.body)
         elide: Text.ElideRight
       }
 
@@ -94,14 +104,14 @@ FocusScope {
         textFormat: Text.PlainText
         color: root.running ? Color.accent : (root.exitCode > 0 ? Color.urgent : root.dim)
         font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
+        font.pixelSize: px(Style.font.caption)
       }
     }
 
     ListView {
       id: logList
       width: parent.width
-      height: Style.space(340)
+      height: root.maxHeight
       clip: true
       boundsBehavior: Flickable.StopAtBounds
       model: root.lines
@@ -118,7 +128,7 @@ FocusScope {
         wrapMode: Text.Wrap
         color: String(modelData).indexOf("── exit") === 0 ? (root.exitCode > 0 ? Color.urgent : Color.accent) : root.dim
         font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
+        font.pixelSize: px(Style.font.caption)
       }
     }
 
@@ -131,7 +141,7 @@ FocusScope {
       color: root.foreground
       opacity: 0.65
       font.family: root.fontFamily
-      font.pixelSize: Style.font.caption
+      font.pixelSize: px(Style.font.caption)
     }
   }
 }
