@@ -59,6 +59,20 @@ automatically — it is logged and left for the user's `x`.
    strings.
    → verify at runtime in step 10.
 
+   **Deviation, found while implementing step 3.** SIGTERM produces a non-zero
+   exit code, and both exit handlers turn a non-zero code into
+   `"… failed (exit N)"`. A deliberate cancel would therefore report itself as
+   a failure, and for `upgrade all` `streamAll` would still be true so
+   `upgradeAllStep` would run the summary path over a cancelled run.
+
+   Resolved with a **self-clearing** `cancelling` flag: set by `cancel()`,
+   read and reset by whichever exit handler runs next. This does not
+   reintroduce the stuck-flag failure the derived lock avoids — the lock is
+   still derived from `running`, and the flag is cleared by the next exit
+   unconditionally, whether or not it set it. Both handlers now skip their
+   error text when it was set, and the stream handler returns before
+   `upgradeAllStep`.
+
 5. **`DistroboxView.qml`: bind `X` in `handleTextKey`** (`:249`), before the
    `cursorActive` guard so it works with no cursor:
    `if (key === "X") { DistroboxState.cancel(); return }`.
