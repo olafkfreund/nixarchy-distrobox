@@ -97,7 +97,16 @@ Per-file site counts: `DistroboxView` 16 font / 23 geom, `BoxList` 5 / 12,
    value is neither a `Style.font.*` token nor a `font*` role property.
    → verify by step 7, not by it passing.
 
-7. **Prove the guard fails.** Plant a `px(` in one file and run
+7. **Prove the guard fails.** *(Done — all three violations caught, and green
+   again after reverting each:*
+
+   | Planted | Guard output |
+   | --- | --- |
+   | `px(root.maxHeight)` | `px() multiplier above; pick a larger Style.font.* token` |
+   | `font.pixelSize: 14` | `font size above is neither a Style.font.* token nor a font* role` |
+   | `readonly property real textScale: 1.45` | `text multiplier above; pick a larger Style.font.* token` |
+
+   *)* Plant a `px(` in one file and run
    `nix flake check`; expect red. Revert. Plant a literal `pixelSize: 14`;
    expect red. Revert. **A check that has never failed is not known to work.**
    → verify by the two red runs and a green one after reverting.
