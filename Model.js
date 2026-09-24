@@ -506,6 +506,21 @@ function errorText(raw) {
   return chosen ? sanitize(chosen.replace(/^Error(?: response from daemon)?:\s*/i, ""), 160) : ""
 }
 
+// The children of a process we are about to SIGTERM.
+//
+// By PID, never by pattern: AGENTS.md records that `pkill -f <pattern>` also
+// kills the shell issuing it, because that shell's own command line contains
+// the pattern. `-P` matches on parent PID alone, so it cannot select anything
+// but that process's children.
+//
+// ONE LEVEL, not recursive. It reaches the engine that `distrobox create`
+// started, which is the tree we measured. A deeper tree would need iteration.
+function killChildrenArgv(pid) {
+  var n = Number(pid)
+  if (!isFinite(n) || Math.floor(n) !== n || n <= 0) return null
+  return ["pkill", "-P", String(n)]
+}
+
 // The refusal shown when a second mutation is asked for. It names the key that
 // gets the lock back: without that, a wedged command looks unrecoverable and
 // the only way out is restarting the shell.

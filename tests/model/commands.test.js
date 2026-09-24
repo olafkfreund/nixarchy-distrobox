@@ -187,3 +187,12 @@ test("busyText names the operation and the key that gets the lock back", () => {
   eq(Model.busyText(false, "", "stopping", "t1"), "Busy: stopping t1 — K to cancel")
   eq(Model.busyText(false, "", "stopping", ""), "Busy: stopping — K to cancel")
 })
+
+test("killChildrenArgv selects children by parent pid, never by pattern", () => {
+  eq(Model.killChildrenArgv(1221103), ["pkill", "-P", "1221103"])
+  eq(Model.killChildrenArgv("1221103"), ["pkill", "-P", "1221103"])
+  // An unset or not-yet-assigned processId must not produce an argv: the
+  // SIGTERM still happens, the child kill is simply skipped.
+  for (const bad of [0, -1, undefined, null, "", NaN, Infinity, 1.5, "1; id", "$(id)", "-1"])
+    eq(Model.killChildrenArgv(bad), null, JSON.stringify(bad))
+})
