@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "Model.js" as Model
 
@@ -109,7 +110,7 @@ Item {
 
     Rectangle {
       anchors.fill: parent
-      color: Color.menu.scrim
+      color: Commons.Color.menu.scrim
     }
 
     // A click away closes, as every summoned surface here does. The card
@@ -129,8 +130,8 @@ Item {
       // A fixed top edge: the card grows and shrinks downwards only, so it
       // does not jump while the filter changes the list's height.
       y: Math.max(Style.gapsOut, Math.round(panel.height * 0.12))
-      color: Color.popups.background
-      borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))
+      color: Commons.Color.popups.background
+      borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2)))
       padding: Style.spacing.popupPadding
       radius: Style.cornerRadius
 
@@ -158,7 +159,7 @@ Item {
           // be a binding loop.
           availableHeight: Math.round(panel.height * 0.8)
                            - card.contentTopInset - card.contentBottomInset
-          foreground: Color.foreground
+          foreground: Commons.Color.foreground
           fontFamily: Style.font.family
           onCloseRequested: root.close()
           // No neighbouring bar panel to hand over to.

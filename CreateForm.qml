@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import qs.Ui
 import qs.Commons
+import qs.Commons as Commons
 import "Model.js" as Model
 
 // The create form: every `distrobox create` flag, the common ones first and
@@ -20,7 +21,7 @@ FocusScope {
   property var boxes: []
   // The user's own templates from the assemble file (#8), after the built-ins.
   property var fileTemplates: []
-  property color foreground: Color.foreground
+  property color foreground: Commons.Color.foreground
   property string fontFamily: Style.font.family
 
 
@@ -260,7 +261,7 @@ FocusScope {
         anchors.verticalCenter: parent.verticalCenter
         text: Model.Glyph.plus
         textFormat: Text.PlainText
-        color: Color.accent
+        color: Commons.Color.accent
         font.family: root.fontFamily
         font.pixelSize: root.fontGlyph
       }
@@ -361,7 +362,7 @@ FocusScope {
                   }
                   textFormat: Text.PlainText
                   color: fieldItem.modelData.kind === "bool" && root.form[fieldItem.modelData.key] === true
-                    ? Color.accent : root.dim
+                    ? Commons.Color.accent : root.dim
                   font.family: root.fontFamily
                   font.pixelSize: root.fontLabel
                 }
@@ -439,7 +440,7 @@ FocusScope {
                       (modelData.tested ? "  · tested" : "") + (modelData.image ? "   " + modelData.image : "")
                     textFormat: Text.PlainText
                     opacity: modelData.usable === false ? 0.55 : 1.0
-                    color: index === root.templateIndex ? Color.accent : root.dim
+                    color: index === root.templateIndex ? Commons.Color.accent : root.dim
                     font.family: root.fontFamily
                     font.pixelSize: root.fontRow
                     elide: Text.ElideRight
@@ -467,7 +468,7 @@ FocusScope {
                     width: parent ? parent.width : 0
                     text: (index === root.imageIndex ? "›  " : "   ") + modelData.label + "   " + modelData.value
                     textFormat: Text.PlainText
-                    color: index === root.imageIndex ? Color.accent : root.dim
+                    color: index === root.imageIndex ? Commons.Color.accent : root.dim
                     font.family: root.fontFamily
                     font.pixelSize: root.fontRow
                     elide: Text.ElideRight
@@ -489,7 +490,7 @@ FocusScope {
                   : (fieldItem.isCurrent && !fieldItem.takesText && fieldItem.modelData.hint ? fieldItem.modelData.hint : ""))
                 textFormat: Text.PlainText
                 color: fieldItem.error !== "" || (fieldItem.modelData.kind === "template" && root.templateNotice !== "")
-                  ? Color.urgent : root.dim
+                  ? Commons.Color.urgent : root.dim
                 font.family: root.fontFamily
                 font.pixelSize: root.fontRow
                 wrapMode: Text.WordWrap

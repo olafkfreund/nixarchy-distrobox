@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Ui
 import qs.Commons
+import qs.Commons as Commons
 import "Model.js" as Model
 
 // The bar widget: a glyph that keeps an eye on your boxes, and a keyboard
@@ -21,7 +22,7 @@ Panel {
   readonly property bool hideWhenEmpty: setting("hideWhenEmpty", false) === true
   readonly property string templatesFile: String(setting("templatesFile", "~/.config/distrobox/boxes.ini"))
 
-  readonly property color foreground: bar ? bar.foreground : Color.foreground
+  readonly property color foreground: bar ? bar.foreground : Commons.Color.foreground
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   function pushSettings() {
@@ -89,7 +90,7 @@ Panel {
     dimmed: DistroboxState.counts.running === 0
     active: DistroboxState.counts.running > 0 || DistroboxState.mutating
     useActiveColor: true
-    activeColor: DistroboxState.counts.failing > 0 ? Color.urgent : Color.accent
+    activeColor: DistroboxState.counts.failing > 0 ? Commons.Color.urgent : Commons.Color.accent
     tooltipText: "Distrobox · " + Model.summaryText(DistroboxState.boxes, DistroboxState.reachable, DistroboxState.engine)
 
     onPressed: function(b) {
