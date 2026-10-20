@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import qs.Ui
 import qs.Commons
+import qs.Commons as Commons
 import "Model.js" as Model
 
 // The list of boxes. Rows come from Model.rowsFor; the ListModel is reconciled
@@ -20,7 +21,7 @@ Item {
   property bool cursorActive: false
   property bool cursorFromKeyboard: false
 
-  property color foreground: Color.foreground
+  property color foreground: Commons.Color.foreground
   property string fontFamily: Style.font.family
 
 
@@ -153,8 +154,8 @@ Item {
         radius: width / 2
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        color: rowSurface.row.failing ? Color.urgent
-          : (rowSurface.row.up ? Color.accent : "transparent")
+        color: rowSurface.row.failing ? Commons.Color.urgent
+          : (rowSurface.row.up ? Commons.Color.accent : "transparent")
         border.width: !rowSurface.row.up && !rowSurface.row.failing ? 1 : 0
         border.color: root.dim
 
@@ -204,8 +205,8 @@ Item {
           text: rowSurface.rowPending ? root.pendingVerb + "…"
             : (rowSurface.row.up ? "" : rowSurface.row.status)
           textFormat: Text.PlainText
-          color: rowSurface.rowPending ? Color.accent
-            : (rowSurface.row.failing ? Color.urgent : root.dim)
+          color: rowSurface.rowPending ? Commons.Color.accent
+            : (rowSurface.row.failing ? Commons.Color.urgent : root.dim)
           font.family: root.fontFamily
           font.pixelSize: root.fontRow
           elide: Text.ElideRight
@@ -230,7 +231,7 @@ Item {
             iconText: modelData.glyph
             tooltipText: modelData.tooltip
             foreground: root.foreground
-            hoverColor: modelData.danger ? Color.urgent : root.foreground
+            hoverColor: modelData.danger ? Commons.Color.urgent : root.foreground
             fontFamily: root.fontFamily
             fontSize: root.fontGlyph
             size: Style.space(22)
