@@ -72,6 +72,5 @@
         "defaultValue": "~/.config/distrobox/boxes.ini"
       }
     ]
-  },
-  "keepLoaded": true
+  }
 }
