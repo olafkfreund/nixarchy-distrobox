@@ -72,7 +72,7 @@
               jq -e '
                 .schemaVersion == 1
                 and .id == "nixarchy.distrobox"
-                and .keepLoaded == true
+                and (has("keepLoaded") | not)
                 and (.kinds | index("menu") and index("bar-widget"))
                 and .entryPoints.menu == "Menu.qml"
                 and .entryPoints.barWidget == "Panel.qml"

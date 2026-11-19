@@ -34,7 +34,7 @@ Create and upgrade stream their output into the panel.
 | `BoxList.qml`, `CreateForm.qml`, `LogView.qml`, `ShortcutSheet.qml` | Drawing pieces used by the view. |
 | `Panel.qml` | The bar widget host: glyph, `KeyboardPanel` popup, and IPC target `nixarchy.distrobox.bar`. |
 | `Menu.qml` | The full-screen menu host (manifest kind `menu`). It scales the view 1.45×. |
-| `manifest.json` | Plugin id `nixarchy.distrobox`, kinds `menu` + `bar-widget`, `keepLoaded: true`, settings schema. |
+| `manifest.json` | Plugin id `nixarchy.distrobox`, kinds `menu` + `bar-widget`, settings schema. No `keepLoaded`: the view loads on first open. |
 | `flake.nix` | The package (an explicit `files` list, copied as real files) and `checks.<system>.default`. |
 | `share/omarchy-menu.jsonc` | The Omarchy menu row users paste in. |
 | `tests/` | Node tests for `Model.js` (`tests/run.js`). |
